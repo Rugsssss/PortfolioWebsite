@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rugved Deshmukh — Software Engineer</title>
+    <meta name="description" content="Portfolio of Rugved Deshmukh: software engineer working across graphics, systems, ML research and UI." />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="loader"><p>Loading room… <span id="progress">0%</span></p></div>
+
+    <canvas id="scene" aria-hidden="true"></canvas>
+    <div id="tooltip" hidden></div>
+
+    <header>
+      <h1>Rugved Deshmukh</h1>
+      <nav aria-label="Sections">
+        <button data-open="about">About</button>
+        <button data-open="projects">Projects</button>
+        <button data-open="systems">Systems</button>
+        <button data-open="graphics">Graphics</button>
+        <button data-open="research">Research</button>
+        <button data-open="fun">Fun</button>
+        <button data-open="contact">Contact</button>
+      </nav>
+      <button id="plain-toggle">Plain view</button>
+    </header>
+
+    <!-- Each <dialog> is one section. The 3D object that opens it is mapped in src/main.js (HOTSPOTS). -->
+    <dialog id="about">
+      <button class="close" aria-label="Close">×</button>
+      <h2>About</h2>
+      <p>Software engineer who likes building things that are fast and feel good to use, from medical device tooling to voxel engines.</p>
+      <ul>
+        <li><b>Masters of Professional Engineering (Software)</b>, University of Sydney — 2026–2028</li>
+        <li><b>B.Tech Computer Science</b>, M.S. Ramaiah University of Applied Sciences — CGPA 8.85</li>
+      </ul>
+      <p>Pune → Bangalore → Sydney.</p>
+      <p><a href="/resume.pdf" download>Download resume (PDF)</a></p>
+    </dialog>
+
+    <dialog id="projects">
+      <button class="close" aria-label="Close">×</button>
+      <h2>Projects</h2>
+      <article>
+        <h3>AOSSIE — PictoPy <small>PyQt5 · OpenCV · PyTorch · SQLite</small></h3>
+        <p>Open-source photo manager (GSoC). Built UI in PyQt5 and smart tagging of objects, faces and scenes with OpenCV + PyTorch.</p>
+        <a href="#">GitHub</a> <!-- TODO: link -->
+      </article>
+      <article>
+        <h3>Kiwix — YouTube UI Revamp <small>JavaScript · HTML · CSS · Python</small></h3>
+        <p>Frontend contributions to Kiwix's GSoC project, improving cross-platform compatibility and accessibility.</p>
+        <a href="#">GitHub</a> <!-- TODO: link -->
+      </article>
+      <article>
+        <h3>Freelance UI/UX & Web <small>2021–2024</small></h3>
+        <p>Responsive, performance-optimized sites and designs for clients, plus ongoing maintenance.</p>
+      </article>
+    </dialog>
+
+    <dialog id="systems">
+      <button class="close" aria-label="Close">×</button>
+      <h2>Systems</h2>
+      <article>
+        <h3>Boston Scientific — Software Developer <small>APAC R&D Urology · 2023</small></h3>
+        <p>Linux benchmarking tools for medical devices and a real-time performance and resource management system. Qt UI development for devices.</p>
+      </article>
+      <article>
+        <h3>RPRMS <small>Python · Bash · psutil · Linux</small></h3>
+        <p>High-efficiency real-time performance &amp; resource monitoring for Linux devices, with visualization and storage of metrics.</p>
+        <a href="#">GitHub</a> <!-- TODO: link -->
+      </article>
+    </dialog>
+
+    <dialog id="graphics">
+      <button class="close" aria-label="Close">×</button>
+      <h2>Graphics &amp; Games</h2>
+      <article>
+        <h3>Voxel Engine <small>ModernGL · PyGLM · Numba · OpenSimplex</small></h3>
+        <p>Custom shaders, clouds, fog, transparent water, chunked terrain generation, camera and character controller — fast even on integrated GPUs.</p>
+        <!-- TODO: add a video/GIF here, e.g. <video src="/media/voxel.mp4" autoplay muted loop playsinline></video> -->
+        <a href="#">GitHub</a> <!-- TODO: link -->
+      </article>
+      <p>Also: Unity, Unreal Engine 4, OpenGL.</p>
+    </dialog>
+
+    <dialog id="research">
+      <button class="close" aria-label="Close">×</button>
+      <h2>Research</h2>
+      <article>
+        <h3>Enhancing Stress and Anxiety Detection Accuracy using Multimodal Sensor Data</h3>
+        <p><b>First author</b>, BIDA 2025 (Springer Nature). Real-time, non-invasive stress prediction from wearable signals (ACC, skin temperature, EDA) with machine learning.</p>
+        <a href="#">Paper</a> <!-- TODO: DOI link -->
+      </article>
+      <article>
+        <h3>Detection of FTP and SSH Brute-force Attacks using Machine Learning</h3>
+        <p>Classifying normal vs. malicious traffic on the CSE-CIC-IDS2018 dataset from packet throughput.</p>
+      </article>
+    </dialog>
+
+    <dialog id="contact">
+      <button class="close" aria-label="Close">×</button>
+      <h2>Contact</h2>
+      <ul>
+        <li><a href="mailto:rugu9000@gmail.com">rugu9000@gmail.com</a></li>
+        <li><a href="#">LinkedIn</a></li> <!-- TODO: link -->
+        <li><a href="#">GitHub</a></li> <!-- TODO: link -->
+      </ul>
+    </dialog>
+
+    <dialog id="fun">
+      <button class="close" aria-label="Close">×</button>
+      <h2>Fun facts</h2>
+      <article>
+        <h3>🎮 Gaming</h3>
+        <p>Valorant regular. <!-- TODO: rank, main agent, favourite map --></p>
+        <!-- TODO: other games you're into -->
+      </article>
+      <article>
+        <h3>📺 Anime</h3>
+        <p>Trigun is a favourite. The poster on my door is one I designed. <!-- TODO: other favourites --></p>
+      </article>
+      <article>
+        <h3>🎧 Music</h3>
+        <p><!-- TODO: what you listen to while coding, favourite artists --></p>
+      </article>
+    </dialog>
+
+    <dialog id="secret">
+      <button class="close" aria-label="Close">×</button>
+      <h2>🗑️ Rejected ideas</h2>
+      <p>Version 1 of this site was a single &lt;h1&gt;. It's in here somewhere.</p>
+    </dialog>
+
+    <dialog id="credits">
+      <button class="close" aria-label="Close">×</button>
+      <h2>Credits</h2>
+      <ul>
+        <li>"<a href="https://sketchfab.com/3d-models/low-poly-isometric-room-56cf7d5811304608b5e6d724195c6ccd">Low Poly Isometric Room</a>" by <a href="https://sketchfab.com/amurin">amurin</a>, <a href="http://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a></li>
+        <li>"Gaming Computer" by Alex Safayan, via <a href="https://poly.pizza">Poly Pizza</a></li> <!-- TODO: confirm license + model link -->
+        <li>"Low Poly Controller" by Ginsta, via <a href="https://poly.pizza">Poly Pizza</a></li> <!-- TODO: confirm license + model link -->
+        <li>Window (day): "<a href="https://commons.wikimedia.org/wiki/File:AUS_Sydney,_Central_Business_District,_Sydney_Opera_House_046.jpg">Sydney Opera House 046</a>" by -wuppertaler, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>, cropped</li>
+        <li>Window (night): "<a href="https://commons.wikimedia.org/wiki/File:Sydney_Harbour_night_skyline.jpg">Sydney Harbour night skyline</a>" by Daniel Falconer, <a href="https://creativecommons.org/licenses/by/2.0/">CC BY 2.0</a>, cropped</li>
+        <li>Door poster: my own design using artwork from <i>Trigun</i> by Yasuhiro Nightow</li>
+      </ul>
+    </dialog>
+
+    <footer>
+      <span class="hint">Click objects in the room · lamp toggles the lights</span>
+      <button data-open="credits" class="link">Credits</button>
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
