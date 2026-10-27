@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rugved Deshmukh — Software Engineer</title>
     <meta name="description" content="Portfolio of Rugved Deshmukh: software engineer working across graphics, systems, ML research and UI." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@700&display=swap" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
@@ -23,6 +26,94 @@
 
     <canvas id="scene" aria-hidden="true"></canvas>
     <div id="tooltip" hidden></div>
+
+    <!-- Comic speech bubbles for the non-CV stuff; a hotspot's `bubble` (src/main.js) names one. -->
+    <div id="scooby" class="bubble" role="status" hidden>
+      <span class="caption">Woof!</span>
+      <p class="say">Say hi! This is my dog, <b>Scooby</b>!</p>
+    </div>
+
+    <!-- The computer's desktop. main.js pins it onto the monitor screen when you click the computer.
+         data-app on an icon opens the .window with the same data-win. -->
+    <div id="desktop">
+      <div class="icons">
+        <button data-app="voxel"><span>🧊</span>Voxel Engine</button>
+        <button data-app="pictopy"><span>🖼️</span>PictoPy</button>
+        <button data-app="rprms"><span>📈</span>RPRMS</button>
+        <button data-app="kiwix"><span>📚</span>Kiwix</button>
+      </div>
+
+      <section class="window" data-win="terminal">
+        <div class="titlebar"><i></i><i></i><i></i><span>terminal</span></div>
+        <pre class="body"><b>$ whoami</b>
+rugved — software engineer, Sydney
+<b>$ ls ~/projects</b>
+voxel-engine  pictopy  rprms  kiwix
+<b>$ cat now.txt</b>
+MPE (Software) @ University of Sydney
+<b>$ ./open --hint</b>
+← click an app to explore<span class="cursor">▌</span></pre>
+      </section>
+
+      <section class="window" data-win="voxel" hidden>
+        <div class="titlebar"><button class="win-close" aria-label="Close window"></button><i></i><i></i><span>voxel-engine</span></div>
+        <div class="body">
+          <h2>🧊 Voxel Engine</h2>
+          <p class="tags">ModernGL · PyGLM · Numba · OpenSimplex</p>
+          <p>A voxel engine written from scratch, built to stay fast even on integrated GPUs.</p>
+          <ul>
+            <li>Custom shaders: clouds, fog and transparent water</li>
+            <li>Chunked terrain generation</li>
+            <li>Camera and character controller</li>
+          </ul>
+          <!-- TODO: add a video/GIF here, e.g. <video src="/media/voxel.mp4" autoplay muted loop playsinline></video> -->
+          <p>Also worked with Unity, Unreal Engine 4 and OpenGL.</p>
+          <a href="https://github.com/Rugsssss/Voxel-Engine" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+      </section>
+
+      <section class="window" data-win="pictopy" hidden>
+        <div class="titlebar"><button class="win-close" aria-label="Close window"></button><i></i><i></i><span>pictopy</span></div>
+        <div class="body">
+          <h2>🖼️ AOSSIE — PictoPy</h2>
+          <p class="tags">PyQt5 · OpenCV · PyTorch · SQLite · GSoC</p>
+          <p>Open-source photo manager, built during Google Summer of Code.</p>
+          <ul>
+            <li>Desktop UI in PyQt5</li>
+            <li>Smart tagging of objects, faces and scenes with OpenCV + PyTorch</li>
+            <li>Local SQLite library</li>
+          </ul>
+          <a href="https://github.com/AOSSIE-Org/PictoPy" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+      </section>
+
+      <section class="window" data-win="rprms" hidden>
+        <div class="titlebar"><button class="win-close" aria-label="Close window"></button><i></i><i></i><span>rprms</span></div>
+        <div class="body">
+          <h2>📈 RPRMS</h2>
+          <p class="tags">Python · Bash · psutil · Linux</p>
+          <p>Real-time performance &amp; resource monitoring for Linux devices, with visualization and storage of metrics.</p>
+          <p>Grew out of my work at Boston Scientific (APAC R&amp;D Urology, 2023): Linux benchmarking tools and a real-time performance and resource management system for medical devices, plus Qt UI development.</p>
+          <a href="https://github.com/Rugsssss/RPRMS" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+      </section>
+
+      <section class="window" data-win="kiwix" hidden>
+        <div class="titlebar"><button class="win-close" aria-label="Close window"></button><i></i><i></i><span>kiwix</span></div>
+        <div class="body">
+          <h2>📚 Kiwix — YouTube UI Revamp</h2>
+          <p class="tags">JavaScript · HTML · CSS · Python · GSoC</p>
+          <p>Frontend contributions to Kiwix's GSoC project, improving cross-platform compatibility and accessibility.</p>
+          <a href="https://github.com/openzim/youtube" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+      </section>
+
+      <div class="taskbar">
+        <span>◆ rugved.dev</span>
+        <button id="desktop-exit">⏻ Back to room</button>
+        <time id="clock"></time>
+      </div>
+    </div>
 
     <header>
       <h1>Rugved Deshmukh</h1>
@@ -57,12 +148,12 @@
       <article>
         <h3>AOSSIE — PictoPy <small>PyQt5 · OpenCV · PyTorch · SQLite</small></h3>
         <p>Open-source photo manager (GSoC). Built UI in PyQt5 and smart tagging of objects, faces and scenes with OpenCV + PyTorch.</p>
-        <a href="#">GitHub</a> <!-- TODO: link -->
+        <a href="https://github.com/AOSSIE-Org/PictoPy" target="_blank" rel="noopener">GitHub ↗</a>
       </article>
       <article>
         <h3>Kiwix — YouTube UI Revamp <small>JavaScript · HTML · CSS · Python</small></h3>
         <p>Frontend contributions to Kiwix's GSoC project, improving cross-platform compatibility and accessibility.</p>
-        <a href="#">GitHub</a> <!-- TODO: link -->
+        <a href="https://github.com/openzim/youtube" target="_blank" rel="noopener">GitHub ↗</a>
       </article>
       <article>
         <h3>Freelance UI/UX & Web <small>2021–2024</small></h3>
@@ -80,7 +171,7 @@
       <article>
         <h3>RPRMS <small>Python · Bash · psutil · Linux</small></h3>
         <p>High-efficiency real-time performance &amp; resource monitoring for Linux devices, with visualization and storage of metrics.</p>
-        <a href="#">GitHub</a> <!-- TODO: link -->
+        <a href="https://github.com/Rugsssss/RPRMS" target="_blank" rel="noopener">GitHub ↗</a>
       </article>
     </dialog>
 
@@ -91,7 +182,7 @@
         <h3>Voxel Engine <small>ModernGL · PyGLM · Numba · OpenSimplex</small></h3>
         <p>Custom shaders, clouds, fog, transparent water, chunked terrain generation, camera and character controller — fast even on integrated GPUs.</p>
         <!-- TODO: add a video/GIF here, e.g. <video src="/media/voxel.mp4" autoplay muted loop playsinline></video> -->
-        <a href="#">GitHub</a> <!-- TODO: link -->
+        <a href="https://github.com/Rugsssss/Voxel-Engine" target="_blank" rel="noopener">GitHub ↗</a>
       </article>
       <p>Also: Unity, Unreal Engine 4, OpenGL.</p>
     </dialog>
@@ -116,7 +207,7 @@
       <ul>
         <li><a href="mailto:rugu9000@gmail.com">rugu9000@gmail.com</a></li>
         <li><a href="#">LinkedIn</a></li> <!-- TODO: link -->
-        <li><a href="#">GitHub</a></li> <!-- TODO: link -->
+        <li><a href="https://github.com/Rugsssss" target="_blank" rel="noopener">GitHub ↗</a></li>
       </ul>
     </dialog>
 

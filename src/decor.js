@@ -16,12 +16,12 @@ const POSTERS = {
   posterTrigun: { image: '/decor/trigun.jpg', draw: drawTrigunPoster, w: 1.04, h: 1.6, position: [-4.12, 3.68, 3.2], rotationY: Math.PI / 2 }, // on the door, above the knob
 }
 
-// Desktop "apps" on the monitor, in screen pixels (1024×576). panel = which <dialog> opens.
+// Desktop "apps" on the monitor, in screen pixels (1024×576). id = which window opens in the zoomed-in desktop (#desktop in index.html).
 const APPS = [
-  { label: 'Voxel Engine', icon: '🧊', panel: 'graphics' },
-  { label: 'PictoPy', icon: '🖼️', panel: 'projects' },
-  { label: 'RPRMS', icon: '📈', panel: 'systems' },
-  { label: 'Kiwix', icon: '📚', panel: 'projects' },
+  { label: 'Voxel Engine', icon: '🧊', id: 'voxel' },
+  { label: 'PictoPy', icon: '🖼️', id: 'pictopy' },
+  { label: 'RPRMS', icon: '📈', id: 'rprms' },
+  { label: 'Kiwix', icon: '📚', id: 'kiwix' },
 ].map((a, i) => ({ ...a, x: 36, y: 36 + i * 118, w: 96, h: 104 }))
 
 const TERMINAL = [
@@ -71,7 +71,10 @@ export function dressRoom({ scene, room, pc, spike, mp3, neon, mug }) {
   room.traverse((m) => {
     if (!m.isMesh) return
     const name = m.material.name
-    if (name === 'suelo') Object.assign(m.material, { roughness: 1, metalness: 0 }) // matte floor: its glossy highlight glowed
+    // matte floor: drop its gloss map (it multiplies roughness back down) and most of the env reflection
+    // same for the desk / bedside table / bed frame wood, and the bedside table's grey body (was near-mirror metal)
+    if (name === 'suelo' || name === 'base_cama') Object.assign(m.material, { roughnessMap: null, metalnessMap: null, roughness: 1, metalness: 0, envMapIntensity: 0.35, needsUpdate: true })
+    if (name === 'gris') Object.assign(m.material, { roughness: 0.9, metalness: 0, envMapIntensity: 0.35 })
     if (name === 'puerta') m.material = woodMat
     if (name === 'afuera') rims = m
     if (name === 'pared') {
@@ -146,9 +149,10 @@ export function dressRoom({ scene, room, pc, spike, mp3, neon, mug }) {
   let screenMesh
   room.getObjectByName('Pantalla_20').traverse((m) => m.isMesh && m.material.name === 'screen' && (screenMesh = m))
   const screenCanvas = document.createElement('canvas')
-  screenCanvas.width = screenCanvas.height = 1024 // the screen UVs use a square texture stretched to 16:9
+  screenCanvas.width = screenCanvas.height = 2048 // the screen UVs use a square texture stretched to 16:9
   const screenTex = new THREE.CanvasTexture(screenCanvas)
   screenTex.colorSpace = THREE.SRGBColorSpace
+  screenTex.anisotropy = 8 // seen at a slant from the default view
   screenMesh.material = new THREE.MeshStandardMaterial({ map: screenTex, emissiveMap: screenTex, emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.4 })
   screenMesh.material.name = 'screen'
   let lastDraw = -1
@@ -702,7 +706,7 @@ function seeded(s) {
 }
 
 function drawDesktop(c, t) {
-  c.setTransform(1, 0, 0, 1024 / 576, 0, 0) // draw in 1024×576, stretched to the square texture
+  c.setTransform(2, 0, 0, 2048 / 576, 0, 0) // draw in 1024×576, stretched to the square 2048 texture
   const bg = c.createLinearGradient(0, 0, 1024, 576)
   bg.addColorStop(0, PALETTE.ink)
   bg.addColorStop(1, PALETTE.slate)

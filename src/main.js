@@ -27,7 +27,7 @@ const PROPS = {
 // view = where the camera sits relative to the object's center when zoomed in.
 // The first hotspot for a panel is where the nav buttons fly to.
 const HOTSPOTS = [
-  { label: 'Projects', panel: 'projects', nodes: ['Pantalla_20', 'Teclado_23', 'Raton_21', 'Alfombrilla_16'], view: [4.5, 1.2, 0.8] },
+  { label: 'Use computer', panel: 'projects', action: 'monitor', nodes: ['Pantalla_20', 'Teclado_23', 'Raton_21', 'Alfombrilla_16'], view: [4.5, 1.2, 0.8] },
   { label: 'Systems', panel: 'systems', nodes: ['pc'], view: [3.6, 1.8, 3.8] },
   { label: 'Graphics & Games', panel: 'graphics', nodes: ['controller'], view: [1.4, 1.4, 1.2] },
   { label: 'Research', panel: 'research', nodes: ['Libros_28', 'Estanteria_27'], view: [0.8, 0.4, 3.6] },
@@ -38,7 +38,7 @@ const HOTSPOTS = [
   { label: 'Valorant', panel: 'fun', nodes: ['spike'], view: [1.6, 1.0, 2.0] },
   { label: 'Play lofi', panel: 'fun', action: 'music', nodes: ['mp3'], view: [0.25, 2.2, 0.35] }, // near top-down
   { label: 'Neon', panel: 'fun', nodes: ['neon'], view: [5, 0.5, 0] },
-  { label: 'Pet', panel: 'fun', nodes: ['pet'], view: [2.2, 1.6, 2.2] },
+  { label: 'Scooby', bubble: 'scooby', nodes: ['pet'], view: [2.2, 1.6, 2.2] }, // bubble = comic speech bubble (id in index.html) instead of a panel
   { label: 'GSoC', panel: 'projects', nodes: ['gsoc'], view: [0, 0, 3] },
   { label: 'USyd', panel: 'about', nodes: ['mug'], view: [1.6, 0.9, 1.4] },
   { label: 'Contact', panel: 'contact', nodes: ['Pomo_24', 'door'], view: [6, 0.8, 0.5] },
@@ -221,11 +221,12 @@ function highlight(h, on) {
   }
 }
 
-function focus(h) {
+function focus(h, panelOpen = true, done) {
   const box = new THREE.Box3()
   h.objects.forEach((o) => box.expandByObject(o))
   const center = box.getCenter(new THREE.Vector3())
-  flyTo(center.clone().add(new THREE.Vector3(...h.view)), center, true)
+  flyTo(center.clone().add(new THREE.Vector3(...h.view)), center, panelOpen, done)
+  return box
 }
 
 // Shift the rendered image left while a panel is open so the focused object isn't hidden behind it.
@@ -236,10 +237,14 @@ function applyViewShift() {
 }
 addEventListener('resize', applyViewShift)
 
+// on: zoomed into the monitor. leaving: flying back out. Both skip OrbitControls, whose angle limits
+// would otherwise yank the camera off the head-on screen view.
+const monitor = { on: false, leaving: false }
+
 gsap.ticker.lagSmoothing(0) // finish tweens on time even if frames are slow
-function flyTo(pos, target, panelOpen = false) {
+function flyTo(pos, target, panelOpen = false, done) {
   const tween = { duration: 1.2, ease: 'power3.inOut', overwrite: true }
-  gsap.to(camera.position, { ...pos, ...tween })
+  gsap.to(camera.position, { ...pos, ...tween, onComplete: () => { monitor.leaving = false; done?.() } })
   gsap.to(controls.target, { x: target.x, y: target.y, z: target.z, ...tween })
   const shift = panelOpen && innerWidth > 640 ? 230 : 0 // half the panel width (see dialog CSS)
   gsap.to(viewShift, { x: shift, ...tween, onUpdate: applyViewShift })
@@ -252,13 +257,161 @@ function openPanel(id, h = HOTSPOTS.find((x) => x.panel === id)) {
     return
   }
   document.querySelectorAll('dialog[open]').forEach((d) => d.id !== id && d.close('switch'))
+  const away = [leaveMonitor(), hideBubble()].some(Boolean) // call both
+  if (away && !h) flyTo(homePosition(), HOME_TARGET, true)
   if (h) focus(h)
   document.getElementById(id).show()
 }
 
 function closePanels() {
   document.querySelectorAll('dialog[open]').forEach((d) => d.close())
+  if ([leaveMonitor(), hideBubble()].some(Boolean)) flyTo(homePosition(), HOME_TARGET)
 }
+
+// ---------- comic speech bubbles: for the non-CV stuff, pinned above the object instead of a side panel ----------
+const bubble = { el: null, anchor: new THREE.Vector3() }
+
+function showBubble(h) {
+  document.querySelectorAll('dialog[open]').forEach((d) => d.close('switch'))
+  leaveMonitor()
+  hideBubble()
+  const box = focus(h, false, () => {
+    bubble.el = document.getElementById(h.bubble)
+    bubble.anchor.set((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2)
+    typeOut(bubble.el)
+    placeBubble()
+    bubble.el.hidden = false
+  })
+  hop(h.objects[0])
+}
+
+// Returns whether one was showing.
+function hideBubble() {
+  if (!bubble.el) return false
+  bubble.el.hidden = true
+  bubble.el = null
+  return true
+}
+
+function placeBubble() {
+  const p = bubble.anchor.clone().project(camera)
+  bubble.el.style.left = `${((p.x + 1) / 2) * innerWidth}px`
+  bubble.el.style.top = `${((1 - p.y) / 2) * innerHeight}px`
+}
+
+// Wrap each letter in a span with its index once; CSS staggers them in (re-runs every time it's unhidden).
+function typeOut(el) {
+  if (el.dataset.typed) return
+  el.dataset.typed = 1
+  let i = 0
+  const walker = document.createTreeWalker(el.querySelector('.say'), NodeFilter.SHOW_TEXT)
+  const nodes = []
+  while (walker.nextNode()) nodes.push(walker.currentNode)
+  for (const node of nodes) {
+    const frag = document.createDocumentFragment()
+    for (const part of node.textContent.split(/(\s+)/)) {
+      if (!part || /\s/.test(part)) { frag.append(part); continue }
+      const word = document.createElement('span') // keeps words from breaking between letters
+      word.className = 'word'
+      for (const ch of part) {
+        const span = document.createElement('span')
+        span.textContent = ch
+        span.style.setProperty('--i', i++)
+        word.append(span)
+      }
+      frag.append(word)
+    }
+    node.replaceWith(frag)
+  }
+}
+
+// Little excited hop (back to the same height even if clicked mid-hop).
+function hop(obj) {
+  obj.userData.baseY ??= obj.position.y
+  gsap.fromTo(obj.position, { y: obj.userData.baseY }, { y: obj.userData.baseY + 0.15, duration: 0.14, ease: 'power1.out', yoyo: true, repeat: 3, overwrite: true })
+}
+
+// ---------- monitor: zoom in, then lay a real HTML desktop (#desktop) over the screen ----------
+
+// The screen is a flat quad with uv 0..1, so one triangle gives the uv -> world map: corner + u*right + v*up.
+const screen = (() => {
+  const { geometry: g, matrixWorld } = decor.screenMesh
+  const at = (i) => (g.index ? g.index.getX(i) : i)
+  const [p0, p1, p2] = [0, 1, 2].map((i) => new THREE.Vector3().fromBufferAttribute(g.attributes.position, at(i)).applyMatrix4(matrixWorld))
+  const [t0, t1, t2] = [0, 1, 2].map((i) => new THREE.Vector2().fromBufferAttribute(g.attributes.uv, at(i)))
+  const e1 = p1.sub(p0), e2 = p2.sub(p0), d1 = t1.sub(t0), d2 = t2.sub(t0)
+  const det = d1.x * d2.y - d2.x * d1.y
+  const right = e1.clone().multiplyScalar(d2.y).addScaledVector(e2, -d1.y).divideScalar(det)
+  const up = e2.clone().multiplyScalar(d1.x).addScaledVector(e1, -d2.x).divideScalar(det)
+  const center = p0.addScaledVector(right, 0.5 - t0.x).addScaledVector(up, 0.5 - t0.y)
+  const w = right.length(), h = up.length()
+  right.normalize()
+  up.normalize()
+  return { center, w, h, right, up, normal: new THREE.Vector3().crossVectors(right, up) }
+})()
+
+const desktop = document.getElementById('desktop')
+desktop.style.height = `${(1280 * screen.h) / screen.w}px` // width is 1280px in style.css
+// Fit the desktop over the screen's on-screen rectangle. Only shown once the camera is head-on, so a
+// flat 2D overlay is exact (a CSS 3D transform would track the fly-in, but browsers won't hit-test it).
+function placeDesktop() {
+  camera.lookAt(screen.center) // the render loop hasn't aimed the camera for this frame yet
+  camera.updateMatrixWorld()
+  const px = (du, dv) => {
+    const p = screen.center.clone().addScaledVector(screen.right, du * screen.w).addScaledVector(screen.up, dv * screen.h).project(camera)
+    return [((p.x + 1) / 2) * innerWidth, ((1 - p.y) / 2) * innerHeight]
+  }
+  const [x0, y0] = px(-0.5, 0.5)
+  const [x1] = px(0.5, 0.5)
+  desktop.style.transform = `translate(${x0}px, ${y0}px) scale(${(x1 - x0) / 1280})`
+}
+// Head-on, close enough that the screen fills most of the viewport.
+function monitorPose() {
+  const tan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * 0.92
+  const dist = Math.max(screen.h / (2 * tan), screen.w / (2 * tan * camera.aspect))
+  return screen.center.clone().addScaledVector(screen.normal, dist)
+}
+
+function enterMonitor(app) {
+  document.querySelectorAll('dialog[open]').forEach((d) => d.close('switch'))
+  if (app) openApp(app)
+  if (monitor.on) return
+  Object.assign(monitor, { on: true, leaving: false })
+  controls.enabled = false
+  highlight(hovered, false) // the desktop covers the canvas now, so pointermove won't clear it
+  hovered = null
+  tooltip.hidden = true
+  flyTo(monitorPose(), screen.center, false, () => {
+    if (!monitor.on) return
+    placeDesktop()
+    desktop.classList.add('on')
+  })
+}
+
+// Returns whether we were zoomed in, so the caller can fly somewhere else.
+function leaveMonitor() {
+  if (!monitor.on) return false
+  Object.assign(monitor, { on: false, leaving: true })
+  controls.enabled = true
+  desktop.classList.remove('on')
+  return true
+}
+
+function openApp(id) {
+  desktop.querySelectorAll('.window').forEach((w) => (w.hidden = w.dataset.win !== id))
+}
+desktop.querySelectorAll('[data-app]').forEach((b) => b.addEventListener('click', () => openApp(b.dataset.app)))
+desktop.querySelectorAll('.win-close').forEach((b) => b.addEventListener('click', () => openApp('terminal')))
+document.getElementById('desktop-exit').addEventListener('click', closePanels)
+const clock = document.getElementById('clock')
+const tick = () => (clock.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
+tick()
+setInterval(tick, 10_000)
+addEventListener('resize', () => {
+  if (!monitor.on) return
+  camera.position.copy(monitorPose())
+  placeDesktop()
+})
 
 document.querySelectorAll('dialog').forEach((d) => {
   d.autofocus = true // focus the panel itself on open, not its close button
@@ -347,7 +500,9 @@ canvas.addEventListener('pointerup', (e) => {
   const { h, app, ctrl } = pick(e)
   if (h?.action === 'toggleDark') toggleDark()
   else if (ctrl) MUSIC_ACTIONS[ctrl.id]()
-  else if (app) openPanel(app.panel, h)
+  else if (app) enterMonitor(app.id)
+  else if (h?.action === 'monitor') enterMonitor()
+  else if (h?.bubble) showBubble(h)
   else if (h) openPanel(h.panel, h)
   else closePanels()
 })
@@ -376,8 +531,10 @@ renderer.setAnimationLoop(() => {
   timer.update()
   const dt = Math.min(timer.getDelta(), 0.1)
   decor.update(timer.getElapsed(), dt)
+  if (bubble.el) placeBubble()
   bloom.threshold = 3.2 - decor.state.night * 1.9 // high by day so floor reflections don't glow; 1.3 at night
   bloom.strength = 0.3 + decor.state.night * 0.35
-  controls.update()
+  if (monitor.on || monitor.leaving) camera.lookAt(controls.target)
+  else controls.update()
   composer.render()
 })
