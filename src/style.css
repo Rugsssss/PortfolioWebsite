@@ -84,7 +84,16 @@ h1 { font-size: 18px; margin: 0 auto 0 0; }
 .logo .word span:first-child { font-size: 1.25em; }
 .logo .word span:hover { translate: 0 -12px; rotate: 0deg; scale: 1.15; }
 @keyframes logo-drop { from { opacity: 0; translate: 0 -24px; rotate: 20deg; } }
-@media (max-width: 640px) { .logo { font-size: 14px; } }
+@media (max-width: 640px) {
+  .logo { font-size: 12px; }
+  .logo .word span { padding: 2px 3px 1px; }
+  /* one row on phones so Menu stays at the right edge and its panel opens into the screen */
+  header { flex-wrap: nowrap; gap: 6px; padding: 10px 12px; }
+  header button { flex-shrink: 0; padding: 3px 8px; font-size: 12px; white-space: nowrap; }
+  #theme-toggle { width: 30px; }
+  #menu-toggle { padding: 3px 9px; }
+  #menu-toggle .label { display: none; } /* just the burger; aria-label still says Menu */
+}
 @media (prefers-reduced-motion: reduce) { .logo .word span { animation: none; transition: none; } }
 /* expandable menu: the Menu button morphs its burger into an ×, the panel drops open and items slide in one by one */
 .menu { position: relative; }
@@ -99,7 +108,7 @@ h1 { font-size: 18px; margin: 0 auto 0 0; }
 [aria-expanded="true"] .burger i:nth-child(3) { top: 4px; transform: rotate(-45deg); }
 #nav {
   position: absolute; right: 0; top: calc(100% + 10px);
-  display: grid; gap: 6px; min-width: 170px; padding: 10px;
+  display: grid; gap: 6px; min-width: 170px; max-width: calc(100vw - 24px); padding: 10px;
   background: var(--glass);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   backdrop-filter: blur(24px) saturate(180%);
