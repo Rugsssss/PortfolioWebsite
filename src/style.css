@@ -63,7 +63,34 @@ footer { bottom: 0; justify-content: space-between; font-size: 13px; color: var(
 header > *, footer > * { pointer-events: auto; }
 #sound { margin-left: auto; }
 h1 { font-size: 18px; margin: 0 auto 0 0; }
-nav { display: flex; gap: 6px; flex-wrap: wrap; }
+/* expandable menu: the Menu button morphs its burger into an ×, the panel drops open and items slide in one by one */
+.menu { position: relative; }
+#menu-toggle { display: inline-flex; align-items: center; gap: 8px; }
+.burger { position: relative; width: 14px; height: 10px; }
+.burger i { position: absolute; left: 0; width: 100%; height: 2px; border-radius: 2px; background: currentColor; transition: transform 0.3s, opacity 0.2s, top 0.3s; }
+.burger i:nth-child(1) { top: 0; }
+.burger i:nth-child(2) { top: 4px; }
+.burger i:nth-child(3) { top: 8px; }
+[aria-expanded="true"] .burger i:nth-child(1) { top: 4px; transform: rotate(45deg); }
+[aria-expanded="true"] .burger i:nth-child(2) { opacity: 0; }
+[aria-expanded="true"] .burger i:nth-child(3) { top: 4px; transform: rotate(-45deg); }
+#nav {
+  position: absolute; right: 0; top: calc(100% + 10px);
+  display: grid; gap: 6px; min-width: 170px; padding: 10px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--glass-edge); border-radius: 20px;
+  box-shadow: inset 0 1px 0 var(--glass-shine), var(--glass-shadow);
+  transform-origin: top right;
+  transition: opacity 0.2s, transform 0.35s cubic-bezier(0.22, 1.25, 0.36, 1), visibility 0.35s;
+}
+#nav:not(.open) { opacity: 0; visibility: hidden; transform: translateY(-8px) scale(0.92); }
+#nav button { text-align: left; transition: opacity 0.25s, transform 0.35s cubic-bezier(0.22, 1.25, 0.36, 1), background 0.2s; transition-delay: calc(var(--i) * 45ms); }
+#nav:not(.open) button { opacity: 0; transform: translateX(12px); transition-delay: 0s; }
+@media (prefers-reduced-motion: reduce) {
+  #nav, #nav button, .burger i { transition: none; }
+}
 header button {
   background: var(--panel);
   color: var(--text);
@@ -73,15 +100,21 @@ header button {
   font-size: 14px;
   font-weight: 600;
 }
+/* dark mode toggle: moon by day, sun at night, with a little spin when it swaps */
+#theme-toggle { display: grid; place-items: center; width: 36px; height: 31px; padding: 0; }
+#theme-toggle svg { grid-area: 1 / 1; width: 16px; height: 16px; fill: currentColor; stroke: currentColor; stroke-width: 2; stroke-linecap: round; transition: opacity 0.3s, transform 0.5s cubic-bezier(0.22, 1.25, 0.36, 1); }
+#theme-toggle .sun { fill: none; }
+#theme-toggle .sun circle { fill: currentColor; }
+body:not(.dark) #theme-toggle .sun, body.dark #theme-toggle .moon { opacity: 0; transform: rotate(-90deg) scale(0.5); }
 header button:hover, header button:focus-visible { background: var(--accent); color: var(--ink); border-color: var(--ink); }
 .link { background: none; border: none; text-decoration: underline; color: inherit; font-size: 13px; }
 
 dialog {
   position: fixed;
-  inset: auto 24px 24px auto;
+  inset: auto 24px 56px auto; /* clear of the footer */
   margin: 0;
   width: min(440px, calc(100vw - 32px));
-  max-height: calc(100vh - 120px);
+  max-height: calc(100vh - 150px);
   overflow: auto;
   color: var(--text);
   padding: 24px;
@@ -129,8 +162,10 @@ dialog p, dialog li { color: var(--muted); }
 dialog b { color: var(--text); }
 dialog small { color: var(--link); font-weight: 600; display: block; } /* pink on light, orange on dark: both readable */
 dialog article + article { margin-top: 16px; }
+dialog h3.section { margin: 22px 0 10px; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--link); }
+dialog h4 { margin: 0 0 4px; font-size: 15px; }
 .close {
-  position: sticky; top: 0; float: right;
+  position: sticky; top: 0; float: right; z-index: 1; /* above the content's slide-in animation layer */
   width: 30px; height: 30px; border-radius: 50%;
   background: var(--glass-edge); border: 1px solid var(--glass-edge); color: var(--text);
   font-size: 18px; line-height: 1;
@@ -150,8 +185,8 @@ dialog article + article { margin-top: 16px; }
   transform: translate(12px, 12px);
 }
 
-/* ---------- the computer's desktop, laid over the monitor screen when zoomed in (main.js) ---------- */
-#desktop {
+/* ---------- monitor pages (.desktop), laid over their monitor screen when zoomed in (main.js) ---------- */
+.desktop {
   position: fixed; left: 0; top: 0; transform-origin: 0 0;
   width: 1280px; /* height comes from the screen's aspect, position/scale from the screen's on-screen rect (main.js) */
   overflow: hidden;
@@ -161,19 +196,19 @@ dialog article + article { margin-top: 16px; }
   opacity: 0; visibility: hidden;
   transition: opacity 0.35s, visibility 0.35s;
 }
-#desktop.on { opacity: 1; visibility: visible; }
-#desktop button { color: inherit; }
-#desktop a { color: var(--orange); }
-.icons { position: absolute; left: 36px; top: 36px; display: grid; gap: 20px; }
+.desktop.on { opacity: 1; visibility: visible; }
+.desktop button { color: inherit; }
+.desktop a { color: var(--orange); }
+.icons { position: absolute; left: 24px; top: 28px; display: grid; grid-template-columns: repeat(2, 140px); gap: 10px 0; } /* two columns, like APPS in decor.js */
 .icons button {
-  display: grid; justify-items: center; gap: 6px; width: 128px; padding: 8px 0;
+  display: grid; justify-items: center; gap: 4px; width: 132px; padding: 6px 0;
   background: none; border: none; border-radius: 16px; font-size: 18px; font-weight: 600;
 }
-.icons span { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 18px; background: rgba(255, 137, 6, 0.18); font-size: 48px; }
+.icons span { display: grid; place-items: center; width: 76px; height: 76px; border-radius: 18px; background: rgba(255, 137, 6, 0.18); font-size: 44px; }
 .icons button:hover, .icons button:focus-visible { background: rgba(255, 255, 254, 0.08); outline: none; }
 .icons button:hover span { background: var(--orange); }
 .window {
-  position: absolute; left: 340px; top: 52px; width: 880px; height: 560px;
+  position: absolute; left: 340px; top: 40px; bottom: 68px; width: 880px; /* fits any screen aspect, clear of the taskbar */
   display: flex; flex-direction: column;
   background: var(--ink); border: 1px solid rgba(255, 255, 254, 0.1); border-radius: 14px; overflow: hidden;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
@@ -200,8 +235,23 @@ pre.body b { color: var(--orange); font-weight: normal; }
   display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
   background: var(--ink); font-weight: 600;
 }
-#desktop-exit { background: var(--orange); color: var(--ink) !important; border: none; border-radius: 999px; padding: 4px 16px; font-weight: 700; }
-#desktop-exit:hover { background: var(--pink); color: var(--paper) !important; }
+.desktop-exit { background: var(--orange); color: var(--ink) !important; border: none; border-radius: 999px; padding: 4px 16px; font-weight: 700; }
+.desktop-exit:hover { background: var(--pink); color: var(--paper) !important; }
+.socials {
+  position: absolute; inset: 36px 64px 76px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; align-content: center;
+}
+.socials h2 { grid-column: 1 / -1; margin: 0 0 8px; font-size: 40px; }
+.social {
+  display: grid; justify-items: start; gap: 6px; padding: 28px;
+  background: var(--ink); border: 2px solid rgba(255, 255, 254, 0.1); border-radius: 18px;
+  text-decoration: none; color: var(--paper) !important;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.social span { font-size: 52px; line-height: 1; }
+.social b { font-size: 28px; }
+.social small { color: var(--grey); font-size: 18px; }
+.social:hover, .social:focus-visible { transform: translateY(-4px); border-color: var(--orange); outline: none; }
 
 /* ---------- comic speech bubble, pinned above an object (main.js); left/top = the point the tail touches ---------- */
 .bubble {
@@ -229,7 +279,7 @@ pre.body b { color: var(--orange); font-weight: normal; }
 .bubble .say { margin: 0; }
 .bubble .say b { color: var(--pink); }
 .bubble .say .word { white-space: nowrap; }
-.bubble .say .word span { display: inline-block; animation: letter 0.25s cubic-bezier(0.22, 1.6, 0.36, 1) calc(0.3s + var(--i) * 35ms) both; }
+.bubble .say .word span { display: inline-block; animation: letter 0.25s cubic-bezier(0.22, 1.6, 0.36, 1) calc(0.3s + var(--i) * var(--step, 35ms)) both; }
 .bubble .caption {
   position: absolute; top: -20px; left: 18px; rotate: -6deg;
   padding: 0 12px;
@@ -237,13 +287,53 @@ pre.body b { color: var(--orange); font-weight: normal; }
   font: 26px/1.3 Bangers, Impact, sans-serif; letter-spacing: 1px;
   animation: caption-shake 0.5s ease 0.5s;
 }
+/* square comic panel variant: no tail, pops out beside the object's right edge (main.js), longer text types faster */
+.bubble.panel {
+  --step: 10ms;
+  translate: 24px -50%;
+  transform-origin: -24px 50%;
+  max-width: min(340px, calc(100vw - 32px));
+  padding: 30px 22px 18px;
+  border-radius: 4px;
+  font-size: 19px;
+}
+.bubble.panel::before, .bubble.panel::after { content: none; }
+@media (max-width: 640px) {
+  /* no room beside it on a phone: pin to the bottom of the screen instead (beats main.js's inline left/top) */
+  .bubble.panel { left: 16px !important; right: 16px; top: auto !important; bottom: 16px; max-width: none; translate: none; transform-origin: 50% 100%; }
+}
+.bubble.panel .say p { margin: 0 0 8px; }
+.bubble .rank {
+  display: block; margin-bottom: 8px;
+  font: 44px/1 Bangers, Impact, sans-serif; letter-spacing: 2px; color: var(--red);
+  -webkit-text-stroke: 1.5px var(--ink); text-shadow: 3px 3px 0 var(--ink);
+  animation: letter 0.4s cubic-bezier(0.22, 1.6, 0.36, 1) 0.25s both;
+}
+.bubble .tracker { font-size: 16px; color: var(--pink); }
 @keyframes bubble-pop { from { scale: 0; rotate: -12deg; opacity: 0; } }
 @keyframes bubble-bob { 50% { transform: translateY(-5px) rotate(1deg); } }
 @keyframes letter { from { opacity: 0; transform: translateY(8px) scale(0.4); } }
 @keyframes caption-shake { 25% { rotate: -14deg; } 50% { rotate: 2deg; } 75% { rotate: -10deg; } }
 @media (prefers-reduced-motion: reduce) {
-  .bubble, .bubble .caption, .bubble .say span { animation: none; }
+  .bubble, .bubble .caption, .bubble .rank, .bubble .say span { animation: none; }
 }
+
+/* first-visit hint pointing at the lights lamp (main.js places it); arrow points down-left at the lamp */
+#lights-hint {
+  position: fixed; z-index: 2; pointer-events: none;
+  translate: -18px calc(-100% - 22px);
+  padding: 6px 14px; border-radius: 999px;
+  background: var(--orange); color: var(--ink); border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+  font-size: 14px; font-weight: 700; white-space: nowrap;
+  animation: hint-bob 1.6s ease-in-out infinite;
+}
+#lights-hint[hidden] { display: none; }
+#lights-hint::after {
+  content: ""; position: absolute; left: 12px; bottom: -12px;
+  border: 6px solid transparent; border-top: 8px solid var(--ink);
+}
+@keyframes hint-bob { 50% { transform: translateY(-5px); } }
+@media (prefers-reduced-motion: reduce) { #lights-hint { animation: none; } }
 
 #loader {
   position: fixed; inset: 0; z-index: 5;
@@ -262,17 +352,106 @@ pre.body b { color: var(--orange); font-weight: normal; }
 @media (prefers-reduced-motion: reduce) { .cube { animation: none; } }
 
 @media (max-width: 640px) {
-  nav { order: 3; width: 100%; }
-  dialog { inset: auto 16px 16px 16px; width: auto; max-height: 55vh; }
+  dialog { inset: auto 16px 52px 16px; width: auto; max-height: 55vh; }
   .hint { display: none; }
 }
 
-/* Plain view: no 3D, every section stacked as a normal page. */
-body.plain #scene, body.plain #desktop, body.plain .bubble, body.plain #tooltip, body.plain #loader, body.plain .close, body.plain .hint { display: none; }
-body.plain header, body.plain footer { position: static; }
-body.plain dialog {
-  display: block; position: static;
-  width: auto; max-width: 720px; max-height: none;
-  margin: 24px auto;
-  opacity: 1; transform: none; transition: none;
+/* Plain view: no 3D; the portfolio as a bento grid of frosted-glass tiles over a drifting palette gradient. */
+body.plain #scene, body.plain #lights-hint, body.plain .desktop, body.plain .bubble, body.plain #tooltip, body.plain #loader, body.plain .close, body.plain .hint { display: none; }
+body.plain dialog:not(#credits) { display: none; } /* #plain has all of it; Credits still opens as a panel */
+body.plain header, body.plain footer { position: sticky; z-index: 3; }
+body.plain header, body.plain footer {
+  background: var(--glass); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
+}
+body.plain header { top: 0; border-bottom: 1px solid var(--glass-edge); margin-bottom: 16px; }
+body.plain footer { bottom: 0; border-top: 1px solid var(--glass-edge); }
+
+#plain { display: none; }
+body.plain #plain { display: block; position: relative; max-width: 1180px; margin: 0 auto; padding: 8px 16px 48px; }
+/* the backdrop: palette gradient that slowly shifts, with soft colour blobs drifting over it */
+body.plain::before, body.plain::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+body.plain::before {
+  background: linear-gradient(120deg, var(--pink), var(--red), var(--orange), var(--pink));
+  background-size: 300% 300%;
+  animation: plain-shift 18s ease-in-out infinite;
+}
+body.plain::after {
+  background:
+    radial-gradient(40vmax 40vmax at 15% 20%, rgba(255, 255, 254, 0.35), transparent 60%),
+    radial-gradient(35vmax 35vmax at 85% 30%, rgba(229, 49, 112, 0.45), transparent 60%),
+    radial-gradient(45vmax 45vmax at 50% 95%, rgba(255, 137, 6, 0.45), transparent 60%);
+  animation: plain-blobs 24s ease-in-out infinite alternate;
+}
+body.plain.dark::before { background-image: linear-gradient(120deg, var(--ink), var(--slate), #3a1e3a, var(--ink)); }
+@keyframes plain-shift { 50% { background-position: 100% 50%; } }
+@keyframes plain-blobs { to { transform: translate(-4%, 3%) scale(1.08); } }
+
+.bento { display: grid; grid-template-columns: repeat(4, 1fr); grid-auto-flow: dense; gap: 16px; }
+.tile.w2 { grid-column: span 2; }
+.tile.h2 { grid-row: span 2; }
+.tile.full { grid-column: 1 / -1; }
+@media (max-width: 960px) { .bento { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .bento { grid-template-columns: 1fr; } .tile.w2 { grid-column: auto; } .tile.h2 { grid-row: auto; } }
+
+.tile {
+  position: relative; overflow: hidden;
+  padding: 22px; border-radius: 26px;
+  color: var(--text);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--glass-edge);
+  box-shadow: inset 0 1px 0 var(--glass-shine), var(--glass-shadow);
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--lift, 0px));
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s;
+}
+.tile:not(.in) { opacity: 0; }
+.tile.in { animation: tile-in 0.8s cubic-bezier(0.2, 0.9, 0.2, 1) var(--d, 0ms) backwards; }
+@keyframes tile-in { from { opacity: 0; translate: 0 40px; scale: 0.94; filter: blur(6px); } }
+
+.tile h2 { margin: 0 0 12px; font-size: clamp(32px, 4.4vw, 52px); line-height: 1.05; letter-spacing: -0.02em; }
+.tile h3 { margin: 0 0 6px; font-size: 19px; line-height: 1.3; }
+.tile p { color: var(--muted); margin: 0 0 12px; }
+.tile .lead { font-size: 19px; color: var(--text); }
+.tile a { color: var(--link); font-weight: 600; }
+.eyebrow { margin: 0 0 8px !important; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--link) !important; }
+.tags { font-size: 13px; font-weight: 600; color: var(--link) !important; }
+.muted { font-size: 14px; }
+.grad { background: linear-gradient(90deg, var(--orange), var(--pink)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.hero { display: flex; flex-direction: column; justify-content: center; }
+.cta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 8px; }
+.pill {
+  display: inline-block; padding: 8px 16px; border-radius: 999px; font: 600 14px/1.2 inherit; text-decoration: none;
+  color: var(--text) !important; background: var(--glass-edge); border: 1px solid var(--glass-edge);
+  transition: transform 0.2s, background 0.2s;
+}
+.pill.solid { background: var(--ink); color: var(--paper) !important; border-color: var(--ink); }
+.pill:hover { transform: translateY(-2px); background: var(--orange); color: var(--ink) !important; }
+
+.stat { display: flex; flex-direction: column; justify-content: center; }
+.stat b { font-size: clamp(34px, 3.6vw, 46px); line-height: 1; letter-spacing: -0.02em; background: linear-gradient(90deg, var(--orange), var(--pink)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.stat p { margin: 8px 0 0; font-size: 14px; }
+
+.timeline { list-style: none; margin: 0; padding: 0 0 0 16px; border-left: 2px solid var(--link); display: grid; gap: 14px; }
+.timeline li { position: relative; }
+.timeline li::before { content: ""; position: absolute; left: -22px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--link); box-shadow: 0 0 0 4px var(--glass); }
+.timeline small { display: block; color: var(--link); font-weight: 600; font-size: 12px; }
+.timeline span { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
+
+.research { display: grid; grid-template-columns: 120px 1fr; gap: 18px; align-items: start; }
+.research img { width: 100%; border-radius: 10px; box-shadow: 0 10px 24px rgba(15, 14, 23, 0.3); rotate: -3deg; transition: rotate 0.4s; }
+.research:hover img { rotate: 0deg; }
+.research h3 { font-size: 16px; }
+@media (max-width: 560px) { .research { grid-template-columns: 1fr; } .research img { width: 110px; } }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; background: var(--glass-edge); border: 1px solid var(--glass-edge); transition: background 0.2s, transform 0.2s; }
+.chip:hover { background: var(--orange); color: var(--ink); transform: translateY(-2px); }
+.tile.in .chip { animation: chip-in 0.5s cubic-bezier(0.22, 1.4, 0.36, 1) calc(var(--d, 0ms) + 0.2s + var(--i, 0) * 35ms) backwards; }
+@keyframes chip-in { from { opacity: 0; scale: 0.6; } }
+
+
+@media (prefers-reduced-motion: reduce) {
+  body.plain::before, body.plain::after, .tile.in, .tile.in .chip { animation: none; }
+  .tile { transition: none; }
 }

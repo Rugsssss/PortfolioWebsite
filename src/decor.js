@@ -1,19 +1,38 @@
 import * as THREE from 'three'
 import { DecalGeometry } from 'three/examples/jsm/geometries/DecalGeometry.js'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
-// Everything that dresses up the room: wall paint, LEDs, PC glow, live monitor, window sky,
-// posters, plants, rug, mug, dust and idle motion. main.js handles interaction.
+// Everything that dresses up the room: matte surfaces, LEDs, RGB glow, live monitor, Sydney photo,
+// posters, mug, dust and idle motion. main.js handles interaction.
 //
-// Room coordinates (y up): floor y=-0.37, desk top y=1.37, left wall x≈-4.2 (door, desk),
-// back wall z≈-4.2 (shelf, window at x -1.7..1.7, bed). Camera looks in from +x/+z.
+// Room coordinates (y up, room.glb scaled 1.4x in main.js): floor y=-0.37, desk top y≈1.09,
+// left wall x≈-3.92 (TV, shelves, clock), back wall z≈-3.92 (desk, door, frames). Camera looks in from +x/+z.
+// Room node names lose their dots in three.js ('Cube.004_3' -> 'Cube004_3').
 
 // Happy Hues palette 13 (same as the CSS tokens in style.css)
 const PALETTE = { ink: '#0f0e17', paper: '#fffffe', slate: '#2e2f3e', grey: '#a7a9be', orange: '#ff8906', red: '#f25f4c', pink: '#e53170', wood: '#5c2c18' }
 
+// Room materials recoloured to the palette: soft grey walls, dark wood floor, slate furniture/trim,
+// coral seating, orange rug and accents. (The rug gets its own drawn texture, see drawRug.)
+const PAINT = {
+  Wall: '#d5d6df', // palette grey blended ~55% toward paper
+  WallConcrete: PALETTE.slate, // outer rim and door frame
+  MetalDoor: PALETTE.slate,
+  PictureFrame: PALETTE.slate,
+  Floor: PALETTE.wood, // tints the parquet texture, grain stays
+  WoodenShelves: PALETTE.slate, // shelves, TV stand, desk top, coffee + side tables (texture dropped below)
+  Armchair: PALETTE.red, // sofa, desk chair, side table top
+  MousePad: PALETTE.orange,
+  SlippersYellow: PALETTE.orange,
+  Slippers: PALETTE.pink,
+  'WallLamp.001': PALETTE.orange, // the lights toggle: stands out against the wall
+}
+
 // Drop real images at these paths to replace the drawn placeholders.
+// cover = material name of a room picture to paint over (w/h then only set the drawing's aspect); else a framed poster at position.
 const POSTERS = {
-  posterPaper: { image: '/decor/paper.jpg', draw: drawPaperPoster, w: 1.15, h: 1.55, position: [3.1, 3.55, -4.18], rotationY: 0 },
-  posterTrigun: { image: '/decor/trigun.jpg', draw: drawTrigunPoster, w: 1.04, h: 1.6, position: [-4.12, 3.68, 3.2], rotationY: Math.PI / 2 }, // on the door, above the knob
+  posterPaper: { image: '/decor/paper.jpg', draw: drawPaperPoster, w: 1.15, h: 1.55, cover: 'Picture2' }, // back wall, middle frame
+  posterTrigun: { image: '/decor/trigun.jpg', draw: drawTrigunPoster, w: 1.04, h: 1.6, position: [2.85, 2.3, -4.03], rotationY: 0 }, // on the door
 }
 
 // Desktop "apps" on the monitor, in screen pixels (1024×576). id = which window opens in the zoomed-in desktop (#desktop in index.html).
@@ -22,13 +41,14 @@ const APPS = [
   { label: 'PictoPy', icon: '🖼️', id: 'pictopy' },
   { label: 'RPRMS', icon: '📈', id: 'rprms' },
   { label: 'Kiwix', icon: '📚', id: 'kiwix' },
-].map((a, i) => ({ ...a, x: 36, y: 36 + i * 118, w: 96, h: 104 }))
+  { label: 'Portfolio', icon: '🏠', id: 'portfolio' },
+].map((a, i) => ({ ...a, x: 36 + (i % 2) * 120, y: 36 + Math.floor(i / 2) * 118, w: 96, h: 104 })) // two columns, like #desktop .icons
 
 const TERMINAL = [
   '$ whoami',
   'rugved — software engineer, Sydney',
   '$ ls ~/projects',
-  'voxel-engine  pictopy  rprms  kiwix',
+  'voxel-engine  pictopy  rprms  kiwix  portfolio',
   '$ cat now.txt',
   'MPE (Software) @ University of Sydney',
   '$ ./open --hint',
@@ -36,9 +56,18 @@ const TERMINAL = [
 ]
 
 export function dressRoom({ scene, room, pc, spike, mp3, neon, mug }) {
-  const state = { night: 0 } // 0 = day, 1 = night; tweened by main.js. RGB lights only come on at night (lamp click)
+  const state = { night: 0 } // 0 = day, 1 = night; tweened by main.js. RGB lights only come on at night (wall lamp click)
   const objects = {} // named clickable decor for HOTSPOTS
   const animated = [] // (t, dt) => void
+  // One colour cycle (orange -> red -> pink, every 4s) for every glow in the room except the spike and the lights lamp.
+  const rgb = new THREE.Color()
+  const rgbStops = [PALETTE.orange, PALETTE.red, PALETTE.pink].map((c) => new THREE.Color(c))
+  animated.push((t) => {
+    const k = (t * 0.75) % 3
+    rgb.lerpColors(rgbStops[Math.floor(k)], rgbStops[(Math.floor(k) + 1) % 3], k % 1)
+  })
+  const meshWith = (name, node = room) => { let found; node.traverse((m) => m.isMesh && m.material.name === name && !found && (found = m)); return found }
+  const byMaterial = (name) => meshWith(name)
 
   // ---------- animated Persona-style background (full-screen shader behind everything) ----------
   const bgUniforms = { uTime: { value: 0 }, uNight: { value: 0 }, uAspect: { value: 1 } }
@@ -65,48 +94,62 @@ export function dressRoom({ scene, room, pc, spike, mp3, neon, mug }) {
     bgUniforms.uAspect.value = innerWidth / innerHeight
   })
 
-  // ---------- paint + shadows ----------
-  const woodMat = new THREE.MeshStandardMaterial({ color: PALETTE.wood, roughness: 0.65 })
-  let rims // 'afuera' = the white wall rims AND the window frame; only the frame goes wood
+  // ---------- matte + shadows ----------
+  const rugTex = canvasTexture(512, 512, drawRug)
+  room.getObjectByName('Plane_84').traverse((m) => m.isMesh && (m.userData.shell = true)) // walls + outer rim
   room.traverse((m) => {
     if (!m.isMesh) return
-    const name = m.material.name
-    // matte floor: drop its gloss map (it multiplies roughness back down) and most of the env reflection
-    // same for the desk / bedside table / bed frame wood, and the bedside table's grey body (was near-mirror metal)
-    if (name === 'suelo' || name === 'base_cama') Object.assign(m.material, { roughnessMap: null, metalnessMap: null, roughness: 1, metalness: 0, envMapIntensity: 0.35, needsUpdate: true })
-    if (name === 'gris') Object.assign(m.material, { roughness: 0.9, metalness: 0, envMapIntensity: 0.35 })
-    if (name === 'puerta') m.material = woodMat
-    if (name === 'afuera') rims = m
-    if (name === 'pared') {
-      m.material.map = null // drop the grey concrete, keep its bump
-      m.material.color.set(PALETTE.paper)
-      m.material.needsUpdate = true
-    }
-    // the outer shell + walls would block the sun from outside; everything else casts
-    m.castShadow = name !== 'pared' && name !== 'afuera'
+    // the model's baked tangents make NaN pixels with its normal maps, which bloom smears over the whole frame;
+    // without them three.js derives tangents in the shader
+    m.geometry.deleteAttribute('tangent')
+    // matte floor and wood: drop the gloss map (it multiplies roughness back down) and most of the env reflection
+    if (m.material.name === 'WoodenShelves') m.material.map = null // solid slate furniture
+    if (m.material.name === 'Carpet') Object.assign(m.material, { map: rugTex }).color.set('#fff')
+    if (m.material.name === 'GlassEevee') Object.assign(m.material, { metalness: 0, roughness: 0.1, opacity: 0.3 }).color.set(PALETTE.paper) // clear, not mirrored
+    if (m.material.name === 'Floor' || m.material.name === 'WoodenShelves') Object.assign(m.material, { roughnessMap: null, metalnessMap: null, roughness: 1, metalness: 0, envMapIntensity: 0.35, needsUpdate: true })
+    if (PAINT[m.material.name]) m.material.color.set(PAINT[m.material.name])
+    m.castShadow = !m.userData.shell // the walls would block the sun from outside; everything else casts
     m.receiveShadow = true
   })
   room.updateMatrixWorld(true)
-  splitMaterial(rims, (c) => c.z < -4.0 && Math.abs(c.x) < 1.95 && c.y > 1.2 && c.y < 5.8, woodMat) // window frame
 
+  // ---------- bias lighting at night: LED strips + spotlights washing the wall behind the desk, TV and shelves ----------
+  const biasMat = new THREE.MeshStandardMaterial({ color: 0x000000 })
+  const washes = []
+  // size = strip box (omit for no visible strip); from/to = spotlight position and where it points (on the wall)
+  const wash = ({ strip, size, from, to, angle = Math.PI / 3, power = 12 }) => {
+    if (strip) {
+      const led = new THREE.Mesh(new THREE.BoxGeometry(...size), biasMat)
+      led.position.set(...strip)
+      scene.add(led)
+    }
+    const light = new THREE.SpotLight(0xffffff, 0, 5, angle, 1, 1.5)
+    light.position.set(...from)
+    light.target.position.set(...to)
+    light.userData.power = power
+    scene.add(light, light.target)
+    washes.push(light)
+  }
+  wash({ strip: [-1.92, 1.12, -3.89], size: [3.8, 0.03, 0.03], from: [-1.92, 1.15, -3.6], to: [-1.92, 3.1, -3.92] }) // desk (DESK in main.js), up the wall
+  wash({ from: [-3.6, 1.56, 1.87], to: [-3.92, 1.56, 1.87], angle: Math.PI / 2.6, power: 8 }) // behind the TV: halo around it
+  wash({ strip: [-3.5, 3.66, 0.16], size: [0.03, 0.03, 1.1], from: [-3.6, 3.68, 0.16], to: [-3.92, 5.2, 0.16], power: 10 }) // top of the shelves, up the wall
+  animated.push(() => {
+    biasMat.emissive.copy(rgb)
+    biasMat.emissiveIntensity = 1.4 * state.night // keep near the bloom threshold so it glows without flaring
+    for (const l of washes) {
+      l.color.copy(rgb)
+      l.intensity = l.userData.power * state.night
+      l.visible = l.intensity > 0 // lights at 0 still cost every pixel
+    }
+  })
+
+  // ---------- PC (props.pc): glass case, RGB fans that spin and glow ----------
   pc.traverse((m) => {
     if (!m.isMesh) return
     m.castShadow = !m.material.transparent // glass would shade the parts behind it
     if (m.material.name === 'mat24') Object.assign(m.material, { opacity: 0.12, roughness: 0.15 }) // case glass: clearer so the parts show
     m.receiveShadow = true
   })
-
-  // ---------- LED strip (bias light behind the desk) ----------
-  const biasMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: PALETTE.pink })
-  const deskLed = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 4.3), biasMat)
-  deskLed.position.set(-4.18, 1.4, -1.45)
-  // wall wash: a spotlight pointing up the wall, so the glossy desk below stays out of the cone (a point light made a hotspot there)
-  const deskLight = new THREE.SpotLight(PALETTE.pink, 0, 5, Math.PI / 3, 1, 1.5)
-  deskLight.position.set(-3.95, 1.45, -0.4)
-  deskLight.target.position.set(-4.2, 3.4, -0.4)
-  scene.add(deskLed, deskLight, deskLight.target)
-
-  // ---------- PC: RGB fans that spin and glow ----------
   const fanRings = []
   pc.traverse((m) => m.isMesh && m.material.name === 'mat8' && fanRings.push(m)) // mat8 = the red fan rings (and the case trim)
   const fanBlades = []
@@ -130,12 +173,12 @@ export function dressRoom({ scene, room, pc, spike, mp3, neon, mug }) {
   const pcLight = new THREE.PointLight(0xff3366, 0, 3.5, 1.5)
   pcLight.position.copy(pcBox.getCenter(new THREE.Vector3())) // inside the case, lights the parts behind the glass
   scene.add(pcLight)
-  const rgb = new THREE.Color()
-  const fanColors = [PALETTE.orange, PALETTE.red, PALETTE.pink].map((c) => new THREE.Color(c))
+  // the room's keyboard, mouse and speakers cycle with the fans
+  const rgbMeshes = [...fanRings]
+  room.traverse((m) => m.isMesh && ['CaseRgb', 'MouseLit', 'YellowSpeakerLit'].includes(m.material.name) && rgbMeshes.push(m))
   animated.push((t, dt) => {
-    const k = (t * 0.75) % 3 // one full orange -> red -> pink loop every 4s
-    rgb.lerpColors(fanColors[Math.floor(k)], fanColors[(Math.floor(k) + 1) % 3], k % 1)
-    for (const m of fanRings) {
+    // read .material each frame: clickable meshes get cloned materials in main.js
+    for (const m of rgbMeshes) {
       if (m.userData.hover) continue
       m.material.emissive.copy(rgb)
       m.material.emissiveIntensity = 1.2 * state.night
@@ -143,21 +186,24 @@ export function dressRoom({ scene, room, pc, spike, mp3, neon, mug }) {
     for (const b of fanBlades) b.rotation.x += dt * 9
     pcLight.color.copy(rgb)
     pcLight.intensity = 1.8 * state.night
+    pcLight.visible = pcLight.intensity > 0
   })
 
-  // ---------- monitor: live desktop ----------
-  let screenMesh
-  room.getObjectByName('Pantalla_20').traverse((m) => m.isMesh && m.material.name === 'screen' && (screenMesh = m))
+  // ---------- monitors: live projects desktop on the main one, socials on the angled one to its left ----------
   const screenCanvas = document.createElement('canvas')
-  screenCanvas.width = screenCanvas.height = 2048 // the screen UVs use a square texture stretched to 16:9
+  screenCanvas.width = screenCanvas.height = 1024 // drawn 1024×576, stretched to the square texture; up close the HTML page takes over
   const screenTex = new THREE.CanvasTexture(screenCanvas)
   screenTex.colorSpace = THREE.SRGBColorSpace
   screenTex.anisotropy = 8 // seen at a slant from the default view
-  screenMesh.material = new THREE.MeshStandardMaterial({ map: screenTex, emissiveMap: screenTex, emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.4 })
-  screenMesh.material.name = 'screen'
+  const screenMat = new THREE.MeshStandardMaterial({ map: screenTex, emissiveMap: screenTex, emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.4 })
+  screenMat.name = 'screen'
+  const screenMesh = planeOver(meshWith('ScreenOff', room.getObjectByName('Cube005_5')), screenMat)
+  const socialsTex = canvasTexture(1024, 1024, drawSocials)
+  const socialsMat = new THREE.MeshStandardMaterial({ map: socialsTex, emissiveMap: socialsTex, emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.4 })
+  const socialsMesh = planeOver(meshWith('ScreenOff', room.getObjectByName('Cube006_6')), socialsMat)
   let lastDraw = -1
   animated.push((t) => {
-    if (t - lastDraw < 0.08) return
+    if (t - lastDraw < 0.1) return // ~10 redraws/s: enough for the typing terminal
     lastDraw = t
     drawDesktop(screenCanvas.getContext('2d'), t)
     screenTex.needsUpdate = true
@@ -169,27 +215,146 @@ export function dressRoom({ scene, room, pc, spike, mp3, neon, mug }) {
     return APPS.find((a) => x >= a.x && x <= a.x + a.w && y >= a.y && y <= a.y + a.h)
   }
 
-  // ---------- window: Sydney photos (drawn skyline until they load), day + night ----------
-  // Photos: see the credits dialog in index.html. Both planes sit behind the wall, visible only through the window.
-  const skyGeo = new THREE.PlaneGeometry(5, 5) // oversized so no angle sees past its edges (the opening is ~3.4 wide)
-  const dayMat = new THREE.MeshBasicMaterial({ map: canvasTexture(512, 512, (c) => drawSky(c, false)), toneMapped: false })
-  const nightMat = new THREE.MeshBasicMaterial({ map: canvasTexture(512, 512, (c) => drawSky(c, true)), toneMapped: false, transparent: true, opacity: 0 })
-  const daySky = new THREE.Mesh(skyGeo, dayMat)
-  const nightSky = new THREE.Mesh(skyGeo, nightMat)
-  loadImageInto(daySky, '/decor/sydney-day.jpg')
-  loadImageInto(nightSky, '/decor/sydney-night.jpg')
-  nightSky.position.z = 0.01
-  const windowView = new THREE.Group()
-  windowView.add(daySky, nightSky)
-  windowView.position.set(0, 3.6, -4.6) // inside the wall's thickness (-4.2..-4.68) so it only shows through the opening; y 1.1-6.1
-  scene.add(windowView)
-  objects.window = windowView
+  // ---------- TV: the Mr. Robot GIF (source-assets/media), stored as a vertical strip of its 8 frames, 2s each ----------
+  const TV_FRAMES = 8
+  const tvTex = new THREE.TextureLoader().load('/decor/mr-robot.webp')
+  tvTex.colorSpace = THREE.SRGBColorSpace
+  tvTex.repeat.set(1, 1 / TV_FRAMES)
+  const tvMesh = planeOver(byMaterial('TVScreenMovie'), new THREE.MeshStandardMaterial({ map: tvTex, emissiveMap: tvTex, emissive: 0xffffff, emissiveIntensity: 0.9, roughness: 0.3 }))
+  animated.push((t) => (tvTex.offset.y = 1 - ((Math.floor(t / 2) % TV_FRAMES) + 1) / TV_FRAMES)) // frame 0 is the top of the strip
+
+  // screens glow on their own; hover highlight resets emissive, so restore it (read .material: main.js clones it)
+  animated.push(() => {
+    for (const m of [screenMesh, socialsMesh, tvMesh]) if (!m.userData.hover) m.material.emissive.setHex(0xffffff)
+  })
+
+  // ---------- window on the left wall: Sydney photos (drawn skyline until they load), day + night ----------
+  // The wall has no opening, so it's a frame + faint glass over the photos. Photos: see the credits dialog.
+  const WIN = { z: -2.2, y: 3.3, w: 2.6, h: 2.2 } // centre on the left wall (x -3.92); clear of the monitors and the moved lamp
+  const win = new THREE.Group()
+  win.position.set(-3.92, WIN.y, WIN.z)
+  win.rotation.y = Math.PI / 2 // local +z points into the room
+  const skyGeo = new THREE.PlaneGeometry(WIN.w, WIN.h)
+  const daySky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ map: canvasTexture(512, 512, (c) => drawSky(c, false)) }))
+  const nightSky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ map: canvasTexture(512, 512, (c) => drawSky(c, true)), transparent: true, opacity: 0 }))
+  daySky.position.z = 0.01
+  nightSky.position.z = 0.012
+  loadImageInto(daySky, '/decor/sydney-day.jpg', WIN.w / WIN.h)
+  loadImageInto(nightSky, '/decor/sydney-night.jpg', WIN.w / WIN.h)
+  const glass = new THREE.Mesh(skyGeo, new THREE.MeshStandardMaterial({ transparent: true, opacity: 0.08, roughness: 0.05, depthWrite: false }))
+  glass.position.z = 0.07
+  win.add(daySky, nightSky, glass)
+  const frameMat = new THREE.MeshStandardMaterial({ color: PALETTE.slate, roughness: 0.6 }) // matches the door and picture frames
+  const bar = (w, h, x, y, d = 0.14) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), frameMat)
+    m.position.set(x, y, d / 2)
+    m.castShadow = true
+    win.add(m)
+  }
+  const t = 0.12 // frame thickness
+  bar(WIN.w + 2 * t, t, 0, WIN.h / 2 + t / 2)
+  bar(WIN.w + 2 * t, t, 0, -WIN.h / 2 - t / 2)
+  bar(t, WIN.h, -WIN.w / 2 - t / 2, 0)
+  bar(t, WIN.h, WIN.w / 2 + t / 2, 0)
+  bar(0.07, WIN.h, 0, 0, 0.1) // centre mullion
+  scene.add(win)
+  objects.sydney = win
   animated.push(() => (nightSky.material.opacity = state.night))
+
+  // ---------- family photos: drop them at these paths and they replace the art in the frames beside the paper ----------
+  for (const [picture, url] of [['Picture3', '/decor/family-1.jpg'], ['Picture1', '/decor/family-2.jpg']]) {
+    const photo = planeOver(byMaterial(picture), new THREE.MeshStandardMaterial({ roughness: 0.8 }))
+    photo.visible = false // until the image loads; the frame's own art shows meanwhile
+    loadImageInto(photo, url, rectOf(photo).w / rectOf(photo).h)
+  }
+
+  // ---------- manga on the tall bookshelf (left wall): favourite series, filled shelf by shelf in this order ----------
+  // vols = how many volumes to shelve; colours from the palette. Spines face the room (+x).
+  const { ink, paper, slate, grey, orange, red, pink } = PALETTE
+  const MANGA = [
+    { title: 'BERSERK', vols: 7, bg: ink, fg: red, band: red },
+    { title: 'VINLAND SAGA', vols: 6, bg: paper, fg: slate, band: orange },
+    { title: 'THE CLIMBER', vols: 4, bg: slate, fg: paper, band: grey },
+    { title: 'ALICE IN BORDERLAND', vols: 4, bg: red, fg: paper, band: ink },
+    { title: '20TH CENTURY BOYS', vols: 4, bg: paper, fg: red, band: slate },
+    { title: 'SLAM DUNK', vols: 4, bg: orange, fg: ink, band: paper },
+    { title: 'HAJIME NO IPPO', vols: 4, bg: paper, fg: ink, band: red },
+    { title: 'VAGABOND', vols: 4, bg: ink, fg: paper, band: grey },
+    { title: 'KINGDOM', vols: 4, bg: slate, fg: orange, band: orange },
+    { title: 'MONSTER', vols: 4, bg: paper, fg: ink, band: pink },
+    { title: 'OYASUMI PUNPUN', vols: 4, bg: paper, fg: pink, band: pink },
+    { title: 'BLUE PERIOD', vols: 4, bg: slate, fg: paper, band: pink },
+    { title: 'ATTACK ON TITAN', vols: 4, bg: grey, fg: ink, band: red },
+    { title: 'TOKYO GHOUL', vols: 4, bg: paper, fg: ink, band: red },
+    { title: 'TOKYO GHOUL:RE', vols: 4, bg: ink, fg: paper, band: red },
+  ]
+  // shelf tops measured from the model: left unit then right unit (the model's own books are removed in main.js)
+  const SHELVES = [
+    ...[0.22, 0.77, 1.35, 1.82, 2.62].map((y) => ({ y, z: [-0.36, 0.11] })),
+    ...[0.05, 0.73, 1.53, 2.01, 2.59].map((y) => ({ y, z: [0.21, 0.68] })),
+  ]
+  const BOOK = { t: 0.055, d: 0.22, gap: 0.004 } // thickness (along z), depth (along x); height varies by series
+  // All books are merged into one mesh (one draw call instead of 6 per book): spines come from one atlas of
+  // 64×320 cells, the other faces from a white corner of it, coloured per vertex (pages / series cover colour).
+  const ATLAS = { cols: 16, cell: [64, 320] }
+  const atlas = document.createElement('canvas')
+  atlas.width = ATLAS.cols * ATLAS.cell[0]
+  atlas.height = 5 * ATLAS.cell[1] + 8 // 5 rows of spines (80 books max) + a white strip at the bottom
+  const ac = atlas.getContext('2d')
+  ac.fillStyle = '#fff'
+  ac.fillRect(0, 0, atlas.width, atlas.height)
+  const white = [2 / atlas.width, 2 / atlas.height] // uv of a white pixel (bottom strip; uv y runs up)
+  const pages = new THREE.Color('#efe6d2')
+  const books = []
+  let shelf = 0
+  let z = SHELVES[0].z[0]
+  shelving: for (const [n, series] of MANGA.entries()) {
+    const h = 0.28 + (n % 3) * 0.015 // real series differ a little in height
+    const cover = new THREE.Color(series.bg)
+    for (let vol = 1; vol <= series.vols; vol++) {
+      if (z + BOOK.t > SHELVES[shelf].z[1]) {
+        if (!SHELVES[++shelf]) break shelving // out of shelf space
+        z = SHELVES[shelf].z[0]
+      }
+      const [col, row] = [books.length % ATLAS.cols, Math.floor(books.length / ATLAS.cols)]
+      const [cw, ch] = ATLAS.cell
+      ac.save()
+      ac.translate(col * cw, row * ch)
+      drawSpine(ac, cw, ch, series, vol)
+      ac.restore()
+      const geo = new THREE.BoxGeometry(BOOK.d, h, BOOK.t) // 4 vertices per face: +x -x +y -y +z -z
+      const uv = geo.attributes.uv
+      const colors = []
+      for (let i = 0; i < uv.count; i++) {
+        const face = Math.floor(i / 4)
+        if (face === 0) uv.setXY(i, ((col + uv.getX(i)) * cw) / atlas.width, 1 - ((row + 1 - uv.getY(i)) * ch) / atlas.height) // spine
+        else uv.setXY(i, ...white)
+        colors.push(...(face === 0 ? [1, 1, 1] : face < 4 ? pages.toArray() : cover.toArray()))
+      }
+      geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
+      geo.translate(-3.22 - BOOK.d / 2, SHELVES[shelf].y + h / 2, z + BOOK.t / 2)
+      books.push(geo)
+      z += BOOK.t + BOOK.gap
+    }
+  }
+  const atlasTex = new THREE.CanvasTexture(atlas)
+  atlasTex.colorSpace = THREE.SRGBColorSpace
+  atlasTex.anisotropy = 4
+  const manga = new THREE.Mesh(mergeGeometries(books), new THREE.MeshStandardMaterial({ map: atlasTex, vertexColors: true, roughness: 0.65 }))
+  manga.castShadow = manga.receiveShadow = true
+  scene.add(manga)
+  objects.manga = manga
 
   // ---------- posters ----------
   for (const [key, p] of Object.entries(POSTERS)) {
     const tex = canvasTexture(p.w > p.h ? 768 : 512, p.w > p.h ? 540 : 690, p.draw)
     const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.8 })
+    if (p.cover) {
+      const art = planeOver(byMaterial(p.cover), mat)
+      loadImageInto(art, p.image, rectOf(art).w / rectOf(art).h)
+      objects[key] = art.parent // the frame node
+      continue
+    }
     const poster = new THREE.Group()
     const frame = new THREE.Mesh(new THREE.BoxGeometry(p.w + 0.1, p.h + 0.1, 0.04), new THREE.MeshStandardMaterial({ color: PALETTE.ink }))
     const art = new THREE.Mesh(new THREE.PlaneGeometry(p.w, p.h), mat)
@@ -203,34 +368,30 @@ export function dressRoom({ scene, room, pc, spike, mp3, neon, mug }) {
     objects[key] = poster
   }
 
-  // ---------- subtle pink underglow on the floor around the bed (as if from an LED strip under it) ----------
-  const bedBox = new THREE.Box3().setFromObject(room.getObjectByName('Cama_4'))
-  let floor
-  room.traverse((m) => m.isMesh && m.material.name === 'suelo' && (floor = m))
-  const floorBox = new THREE.Box3().setFromObject(floor)
-  // glow rectangle = bed footprint + pad, clipped to the floor so it never hangs past the room's open edges
-  const pad = 1.2
-  const x0 = Math.max(bedBox.min.x - pad, floorBox.min.x), x1 = Math.min(bedBox.max.x + pad, floorBox.max.x)
-  const z0 = Math.max(bedBox.min.z - pad, floorBox.min.z), z1 = Math.min(bedBox.max.z + pad, floorBox.max.z)
+  // ---------- soft underglow on the floor around the sofa (as if from an LED strip under it) ----------
+  const sofaBox = new THREE.Box3().setFromObject(room.getObjectByName('Cube012_19'))
+  const floorBox = new THREE.Box3().setFromObject(byMaterial('Floor'))
+  // glow rectangle = sofa footprint + pad, clipped to the floor so it never hangs past the room's open edges
+  const pad = 0.3 // just enough room for the halo
+  const x0 = Math.max(sofaBox.min.x - pad, floorBox.min.x), x1 = Math.min(sofaBox.max.x + pad, floorBox.max.x)
+  const z0 = Math.max(sofaBox.min.z - pad, floorBox.min.z), z1 = Math.min(sofaBox.max.z + pad, floorBox.max.z)
   const glow = new THREE.Mesh(
     new THREE.PlaneGeometry(x1 - x0, z1 - z0),
     new THREE.MeshBasicMaterial({
       map: canvasTexture(256, 512, (c, w, h) => {
-        // bed-shaped rectangle with a wide soft shadowBlur halo (works in every browser, unlike ctx.filter).
+        // White falloff (tinted by the shared rgb): many faint, ever-larger rounded rects around the sofa's footprint
+        // stack into a smooth gradient (works in every browser, unlike ctx.filter).
         // Canvas x runs x0 -> x1, canvas y runs z0 -> z1 (the plane is laid flat facing up).
         const u = (x) => ((x - x0) / (x1 - x0)) * w
         const v = (z) => ((z - z0) / (z1 - z0)) * h
-        c.shadowColor = PALETTE.pink
-        c.shadowBlur = 60
-        c.fillStyle = PALETTE.pink
-        c.fillRect(u(bedBox.min.x), v(bedBox.min.z), u(bedBox.max.x) - u(bedBox.min.x), v(bedBox.max.z) - v(bedBox.min.z))
-        // soft-erase the glow under/around the nightstand, it looked like a stray pink patch at its base
-        const ns = new THREE.Box3().setFromObject(room.getObjectByName('Mesa_noche_25')).expandByScalar(0.15)
-        c.globalCompositeOperation = 'destination-out'
-        c.shadowColor = '#000'
-        c.shadowBlur = 30
-        c.fillStyle = '#000'
-        c.fillRect(u(ns.min.x), v(ns.min.z), u(ns.max.x) - u(ns.min.x), v(ns.max.z) - v(ns.min.z))
+        const [l, r, t, b] = [u(sofaBox.min.x), u(sofaBox.max.x), v(sofaBox.min.z), v(sofaBox.max.z)]
+        c.fillStyle = 'rgba(255,255,255,0.12)'
+        for (let k = 8; k >= 0; k--) {
+          const e = k * 1.8 // ~15px (about 0.12 units) past the sofa's edges
+          c.beginPath()
+          c.roundRect(l - e, t - e, r - l + 2 * e, b - t + 2 * e, 6 + e)
+          c.fill()
+        }
       }),
       transparent: true,
       blending: THREE.AdditiveBlending,
@@ -239,21 +400,13 @@ export function dressRoom({ scene, room, pc, spike, mp3, neon, mug }) {
     }),
   )
   glow.rotation.x = -Math.PI / 2
-  glow.position.set((x0 + x1) / 2, -0.345, (z0 + z1) / 2) // just above floor + rug
+  glow.position.set((x0 + x1) / 2, floorBox.max.y + 0.02, (z0 + z1) / 2) // just above floor + carpet
   glow.raycast = () => {}
   scene.add(glow)
-  animated.push(() => (glow.material.opacity = 0.25 + state.night * 0.55))
-
-  // ---------- rug ----------
-  const rug = new THREE.Mesh(
-    new THREE.CircleGeometry(1.6, 48),
-    new THREE.MeshStandardMaterial({ map: canvasTexture(512, 512, drawRug), roughness: 1 }),
-  )
-  rug.rotation.x = -Math.PI / 2
-  rug.scale.set(1.25, 1, 1)
-  rug.position.set(-0.5, -0.355, 1.1)
-  rug.receiveShadow = true
-  scene.add(rug)
+  animated.push(() => {
+    glow.material.color.copy(rgb)
+    glow.material.opacity = 0.2 + state.night * 0.5
+  })
 
   // ---------- University of Sydney logo printed on the mug (props.mug) ----------
   // A decal projects the logo onto the curved side that faces the room. It's parented to the mug
@@ -347,24 +500,24 @@ export function dressRoom({ scene, room, pc, spike, mp3, neon, mug }) {
     })
   })
 
-  // ---------- GSoC sticker on the wall above the books (text only, no Google logo) ----------
+  // ---------- GSoC sticker on the back wall (text only, no Google logo) ----------
   const gsoc = new THREE.Mesh(
     new THREE.PlaneGeometry(1.15, 0.76),
     new THREE.MeshStandardMaterial({ map: canvasTexture(512, 340, drawGsocSticker), transparent: true, roughness: 0.6 }),
   )
-  gsoc.position.set(-3.1, 5.6, -4.18)
+  gsoc.position.set(2.85, 4.45, -3.9) // above the door
   gsoc.rotation.z = 0.06
   scene.add(gsoc)
   objects.gsoc = gsoc
 
-  // ---------- neon sign: soft by day, bright with a little tube flicker at night ----------
+  // ---------- neon sign: soft by day, bright with a little tube flicker at night, glowing in the shared rgb ----------
   const neonMeshes = []
   neon.traverse((m) => m.isMesh && neonMeshes.push(m))
   animated.push((t) => {
     const flicker = 1 - state.night * 0.08 * (Math.sin(t * 37) * Math.sin(t * 13) > 0.6 ? 1 : 0)
     for (const m of neonMeshes) {
       if (m.userData.hover) continue
-      m.material.emissive.setHex(0xffffff) // hover highlight resets emissive, so restore it
+      m.material.emissive.copy(rgb) // also restores it after the hover highlight
       m.material.emissiveIntensity = (1 + state.night * 1.1) * flicker
     }
   })
@@ -392,25 +545,23 @@ export function dressRoom({ scene, room, pc, spike, mp3, neon, mug }) {
     dust.material.opacity = 0.6 - state.night * 0.35
   })
 
-  // ---------- chair sways a little ----------
-  const chair = room.getObjectByName('Silla_22')
+  // ---------- desk chair sways a little (the right one; the left one isn't grouped in the model) ----------
+  const chair = room.getObjectByName('Cylinder022_105')
   const chairPivot = new THREE.Group()
   new THREE.Box3().setFromObject(chair).getCenter(chairPivot.position)
   scene.add(chairPivot)
   chairPivot.attach(chair)
   animated.push((t) => (chairPivot.rotation.y = Math.sin(t * 0.4) * 0.12))
 
-  // ---------- lamp shade glows at night, LEDs brighten ----------
+  // ---------- wall lamp (the lights toggle): warm glow at night, a gentle breathe by day so it's easy to spot ----------
   const lampMeshes = []
-  room.getObjectByName('Lampara_26').traverse((m) => m.isMesh && m.material.name === 'lamapra' && lampMeshes.push(m))
-  animated.push(() => {
-    biasMat.emissiveIntensity = 1.4 * state.night // keep near the bloom threshold so it glows without flaring
-    deskLight.intensity = 12 * state.night
+  room.traverse((m) => m.isMesh && m.material.name === 'WallLamp.001' && lampMeshes.push(m))
+  animated.push((t) => {
     // lamp meshes are cloned for hover highlight later, so read .material each frame
     for (const m of lampMeshes) {
       if (m.userData.hover) continue
-      m.material.emissive.setHex(0xffa060)
-      m.material.emissiveIntensity = state.night * 0.6
+      m.material.emissive.set(PALETTE.orange)
+      m.material.emissiveIntensity = state.night * 0.08 + (1 - state.night) * (0.07 + Math.sin(t * 3) * 0.05)
     }
   })
 
@@ -418,6 +569,7 @@ export function dressRoom({ scene, room, pc, spike, mp3, neon, mug }) {
     state,
     objects,
     screenMesh,
+    screens: { projects: rectOf(screenMesh), socials: rectOf(socialsMesh) }, // keys = data-screen in index.html
     screenAppAt,
     music,
     mp3Mesh,
@@ -683,11 +835,21 @@ function drawSpotifyLogo(c, cx, cy, r) {
 // ---------- helpers ----------
 // Swap in a real image when it exists; if it's missing, the drawn placeholder stays.
 // Takes the mesh, not the material: clickable meshes get their material cloned in main.js, so read it on load.
-function loadImageInto(mesh, url) {
+// aspect (w/h of the mesh): crop the image to fill it without stretching, like CSS object-fit: cover
+function loadImageInto(mesh, url, aspect) {
   new THREE.TextureLoader().load(url, (img) => {
     img.colorSpace = THREE.SRGBColorSpace
+    const a = img.image.width / img.image.height
+    if (aspect && a > aspect) {
+      img.repeat.set(aspect / a, 1)
+      img.offset.set((1 - aspect / a) / 2, 0)
+    } else if (aspect && a < aspect) {
+      img.repeat.set(1, a / aspect)
+      img.offset.set(0, (1 - a / aspect) / 2)
+    }
     mesh.material.map = img
     mesh.material.needsUpdate = true
+    mesh.visible = true
   }, undefined, () => {})
 }
 
@@ -706,7 +868,7 @@ function seeded(s) {
 }
 
 function drawDesktop(c, t) {
-  c.setTransform(2, 0, 0, 2048 / 576, 0, 0) // draw in 1024×576, stretched to the square 2048 texture
+  c.setTransform(1, 0, 0, 1024 / 576, 0, 0) // draw in 1024×576, stretched to the square texture
   const bg = c.createLinearGradient(0, 0, 1024, 576)
   bg.addColorStop(0, PALETTE.ink)
   bg.addColorStop(1, PALETTE.slate)
@@ -761,6 +923,31 @@ function drawDesktop(c, t) {
   c.fillText('◆ rugved.dev', 16, 564)
   c.textAlign = 'right'
   c.fillText(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 1008, 564)
+}
+
+// The socials monitor as seen from across the room (the real links are the #socials page when zoomed in).
+function drawSocials(c) {
+  c.setTransform(1, 0, 0, 1024 / 576, 0, 0) // draw in 1024×576, stretched to the square texture
+  const bg = c.createLinearGradient(0, 0, 1024, 576)
+  bg.addColorStop(0, PALETTE.ink)
+  bg.addColorStop(1, PALETTE.slate)
+  c.fillStyle = bg
+  c.fillRect(0, 0, 1024, 576)
+  c.fillStyle = PALETTE.paper
+  c.font = '700 44px system-ui, sans-serif'
+  c.fillText('Find me online', 64, 110)
+  ;[['🐙', 'GitHub'], ['💼', 'LinkedIn'], ['✉️', 'Email'], ['🎧', 'Spotify']].forEach(([icon, label], i) => {
+    const x = 64 + i * 228
+    c.fillStyle = PALETTE.ink
+    roundRect(c, x, 170, 208, 240, 18)
+    c.fillStyle = PALETTE.paper
+    c.font = '64px "Segoe UI Emoji", "Apple Color Emoji", sans-serif'
+    c.fillText(icon, x + 28, 260)
+    c.font = '700 34px system-ui, sans-serif'
+    c.fillText(label, x + 28, 330)
+  })
+  c.fillStyle = PALETTE.ink
+  c.fillRect(0, 540, 1024, 36)
 }
 
 function drawSky(c, night) {
@@ -923,36 +1110,70 @@ function drawGsocSticker(c, w, h) {
   c.fillText('contributor · Kiwix · AOSSIE', w / 2, 250)
 }
 
-// Move the triangles whose world-space centre passes `test` onto a second material.
-function splitMaterial(mesh, test, material) {
+// A flat rectangular mesh (screen, picture) -> its rectangle in world space, facing into the room.
+// right/up/normal are unit vectors; w/h are world sizes.
+function rectOf(mesh) {
+  mesh.updateMatrixWorld(true)
   const g = mesh.geometry
   const pos = g.attributes.position
-  const idx = g.index ? Array.from(g.index.array) : [...Array(pos.count).keys()]
-  const v = new THREE.Vector3()
-  const c = new THREE.Vector3()
-  const keep = []
-  const moved = []
-  for (let i = 0; i < idx.length; i += 3) {
-    c.set(0, 0, 0)
-    for (let k = 0; k < 3; k++) c.add(v.fromBufferAttribute(pos, idx[i + k]))
-    c.divideScalar(3).applyMatrix4(mesh.matrixWorld)
-    ;(test(c) ? moved : keep).push(idx[i], idx[i + 1], idx[i + 2])
+  const pts = Array.from({ length: pos.count }, (_, i) => new THREE.Vector3().fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld))
+  // normal from the biggest triangle (exported meshes can start with a degenerate one)
+  const at = (i) => pts[g.index ? g.index.getX(i) : i]
+  const normal = new THREE.Vector3()
+  for (let i = 0, n = new THREE.Vector3(); i < (g.index ?? pos).count; i += 3) {
+    n.crossVectors(at(i + 1).clone().sub(at(i)), at(i + 2).clone().sub(at(i)))
+    if (n.lengthSq() > normal.lengthSq()) normal.copy(n)
   }
-  g.setIndex([...keep, ...moved])
-  g.clearGroups()
-  g.addGroup(0, keep.length, 0)
-  g.addGroup(keep.length, moved.length, 1)
-  mesh.material = [mesh.material, material]
+  normal.normalize()
+  const mid = new THREE.Box3().setFromPoints(pts).getCenter(new THREE.Vector3())
+  if (normal.dot(new THREE.Vector3(0, 2, 0).sub(mid)) < 0) normal.negate() // the room's middle is in front
+  const right = new THREE.Vector3(0, 1, 0).cross(normal).normalize()
+  const up = new THREE.Vector3().crossVectors(normal, right)
+  const span = (axis) => { const d = pts.map((p) => p.dot(axis)); return [Math.min(...d), Math.max(...d)] }
+  const [r0, r1] = span(right), [u0, u1] = span(up)
+  const center = mid.clone().addScaledVector(right, (r0 + r1) / 2 - mid.dot(right)).addScaledVector(up, (u0 + u1) / 2 - mid.dot(up))
+  return { center, normal, right, up, w: r1 - r0, h: u1 - u0 }
 }
 
-function drawRug(c) {
-  const rings = [PALETTE.ink, PALETTE.paper, PALETTE.orange, PALETTE.slate, PALETTE.pink, PALETTE.paper, PALETTE.red]
-  rings.forEach((col, i) => {
-    c.fillStyle = col
-    c.beginPath()
-    c.arc(256, 256, 256 - i * 34, 0, Math.PI * 2)
-    c.fill()
-  })
+// A plane with uv 0..1 laid just in front of `mesh` and attached to its parent, so it's part of the same
+// clickable object. Used where the model's own UVs only cover part of the surface.
+function planeOver(mesh, material, lift = 0.003) {
+  const r = rectOf(mesh)
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.h), material)
+  plane.position.copy(r.center).addScaledVector(r.normal, lift)
+  plane.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(r.right, r.up, r.normal))
+  mesh.parent.attach(plane)
+  return plane
+}
+
+// A manga spine: colour band at the top, title running down, volume number at the bottom.
+function drawSpine(c, w, h, series, vol) {
+  c.fillStyle = series.bg
+  c.fillRect(0, 0, w, h)
+  c.fillStyle = series.band
+  c.fillRect(0, 0, w, h * 0.07)
+  c.save()
+  c.translate(w / 2, h * 0.12)
+  c.rotate(Math.PI / 2)
+  c.fillStyle = series.fg
+  c.font = 'bold 34px Impact, "Arial Black", sans-serif'
+  c.textBaseline = 'middle'
+  c.fillText(series.title, 0, 0, h * 0.68)
+  c.restore()
+  c.fillStyle = series.fg
+  c.font = 'bold 28px system-ui, sans-serif'
+  c.textAlign = 'center'
+  c.fillText(vol, w / 2, h * 0.94)
+}
+
+// The carpet: ink border, orange field, three pink stripes.
+function drawRug(c, w, h) {
+  c.fillStyle = PALETTE.ink
+  c.fillRect(0, 0, w, h)
+  c.fillStyle = PALETTE.orange
+  c.fillRect(w * 0.05, h * 0.05, w * 0.9, h * 0.9)
+  c.fillStyle = PALETTE.pink
+  for (const y of [0.38, 0.5, 0.62]) c.fillRect(w * 0.05, h * y - 6, w * 0.9, 12)
 }
 
 function roundRect(c, x, y, w, h, r) {

@@ -26,21 +26,48 @@
 
     <canvas id="scene" aria-hidden="true"></canvas>
     <div id="tooltip" hidden></div>
+    <div id="lights-hint" hidden>💡 Click the lamp to switch the lights</div>
 
     <!-- Comic speech bubbles for the non-CV stuff; a hotspot's `bubble` (src/main.js) names one. -->
+    <div id="trigun-fact" class="bubble panel" role="status" hidden>
+      <span class="caption">Fun fact!</span>
+      <strong class="rank">Made by me</strong>
+      <div class="say">
+        <p><b>Trigun</b> is my favourite anime of all time, and I designed this poster myself.</p>
+        <p>I love designing things inspired by my favourite media: films, TV shows and anime.</p>
+      </div>
+    </div>
+    <div id="controller-fact" class="bubble panel" role="status" hidden>
+      <span class="caption">Fun fact!</span>
+      <strong class="rank">Player since age 3</strong>
+      <div class="say">
+        <p>Games have been my thing since childhood: I've been playing since I was about <b>3 years old</b>.</p>
+        <p>To this day I've put <b>10,000+ hours</b> into them, across PC, Wii, PS2, PS3, PS5, PSP, PS Vita and Game Boy Advance.</p>
+      </div>
+    </div>
+    <div id="spike-fact" class="bubble panel" role="status" hidden>
+      <span class="caption">Fun fact!</span>
+      <strong class="rank">Immortal 2</strong>
+      <div class="say">
+        <p>I'm <b>Immortal 2</b> in Valorant, with <b>2,500+ hours</b> and professional collegiate experience.</p>
+        <p>Before that: 4 years of competitive Overwatch.</p>
+      </div>
+      <a class="tracker" href="https://tracker.gg/valorant/profile/riot/rugu%23meow/overview?platform=pc&amp;playlist=competitive&amp;season=d816f426-48ea-f052-117f-9697a155b319" target="_blank" rel="noopener">My tracker.gg profile ↗</a>
+    </div>
     <div id="scooby" class="bubble" role="status" hidden>
       <span class="caption">Woof!</span>
       <p class="say">Say hi! This is my dog, <b>Scooby</b>!</p>
     </div>
 
-    <!-- The computer's desktop. main.js pins it onto the monitor screen when you click the computer.
-         data-app on an icon opens the .window with the same data-win. -->
-    <div id="desktop">
+    <!-- Monitor pages. main.js lays each .desktop over the monitor named by its data-screen (decor.js screens)
+         when you click that monitor. On the projects desktop, data-app on an icon opens the .window with the same data-win. -->
+    <div id="desktop" class="desktop" data-screen="projects">
       <div class="icons">
         <button data-app="voxel"><span>🧊</span>Voxel Engine</button>
         <button data-app="pictopy"><span>🖼️</span>PictoPy</button>
         <button data-app="rprms"><span>📈</span>RPRMS</button>
         <button data-app="kiwix"><span>📚</span>Kiwix</button>
+        <button data-app="portfolio"><span>🏠</span>Portfolio</button>
       </div>
 
       <section class="window" data-win="terminal">
@@ -48,7 +75,7 @@
         <pre class="body"><b>$ whoami</b>
 rugved — software engineer, Sydney
 <b>$ ls ~/projects</b>
-voxel-engine  pictopy  rprms  kiwix
+voxel-engine  pictopy  rprms  kiwix  portfolio
 <b>$ cat now.txt</b>
 MPE (Software) @ University of Sydney
 <b>$ ./open --hint</b>
@@ -60,7 +87,7 @@ MPE (Software) @ University of Sydney
         <div class="body">
           <h2>🧊 Voxel Engine</h2>
           <p class="tags">ModernGL · PyGLM · Numba · OpenSimplex</p>
-          <p>A voxel engine written from scratch, built to stay fast even on integrated GPUs.</p>
+          <p>A Minecraft-like voxel engine (with thanks to StanislavPetrovV for guidance), built to stay fast even on integrated GPUs.</p>
           <ul>
             <li>Custom shaders: clouds, fog and transparent water</li>
             <li>Chunked terrain generation</li>
@@ -76,8 +103,8 @@ MPE (Software) @ University of Sydney
         <div class="titlebar"><button class="win-close" aria-label="Close window"></button><i></i><i></i><span>pictopy</span></div>
         <div class="body">
           <h2>🖼️ AOSSIE — PictoPy</h2>
-          <p class="tags">PyQt5 · OpenCV · PyTorch · SQLite · GSoC</p>
-          <p>Open-source photo manager, built during Google Summer of Code.</p>
+          <p class="tags">PyQt5 · OpenCV · PyTorch · SQLite</p>
+          <p>Open-source photo manager by AOSSIE, a Google Summer of Code organisation, that I contributed to.</p>
           <ul>
             <li>Desktop UI in PyQt5</li>
             <li>Smart tagging of objects, faces and scenes with OpenCV + PyTorch</li>
@@ -93,8 +120,24 @@ MPE (Software) @ University of Sydney
           <h2>📈 RPRMS</h2>
           <p class="tags">Python · Bash · psutil · Linux</p>
           <p>Real-time performance &amp; resource monitoring for Linux devices, with visualization and storage of metrics.</p>
-          <p>Grew out of my work at Boston Scientific (APAC R&amp;D Urology, 2023): Linux benchmarking tools and a real-time performance and resource management system for medical devices, plus Qt UI development.</p>
+          <p>Related: at Boston Scientific (APAC R&amp;D Urology, 2023) I built Linux benchmarking tools and a real-time performance and resource management system for medical devices, plus Qt UI development.</p>
           <a href="https://github.com/Rugsssss/RPRMS" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+      </section>
+
+      <section class="window" data-win="portfolio" hidden>
+        <div class="titlebar"><button class="win-close" aria-label="Close window"></button><i></i><i></i><span>portfolio</span></div>
+        <div class="body">
+          <h2>🏠 This portfolio</h2>
+          <p class="tags">Three.js · WebGL · Vite · GSAP · Canvas 2D</p>
+          <p>The room you're in: an interactive 3D portfolio where every object leads somewhere.</p>
+          <ul>
+            <li>Click-to-explore hotspots with smooth camera flights</li>
+            <li>Live monitors: real web pages laid over the 3D screens when you zoom in</li>
+            <li>Day/night lighting with synced RGB glows, bloom and a lofi player on the MP3</li>
+            <li>Comic-panel easter eggs, plus a plain view that works without WebGL</li>
+          </ul>
+          <a href="https://github.com/Rugsssss/PortfolioWebsite" target="_blank" rel="noopener">GitHub ↗</a>
         </div>
       </section>
 
@@ -102,7 +145,7 @@ MPE (Software) @ University of Sydney
         <div class="titlebar"><button class="win-close" aria-label="Close window"></button><i></i><i></i><span>kiwix</span></div>
         <div class="body">
           <h2>📚 Kiwix — YouTube UI Revamp</h2>
-          <p class="tags">JavaScript · HTML · CSS · Python · GSoC</p>
+          <p class="tags">JavaScript · HTML · CSS · Python</p>
           <p>Frontend contributions to Kiwix's GSoC project, improving cross-platform compatibility and accessibility.</p>
           <a href="https://github.com/openzim/youtube" target="_blank" rel="noopener">GitHub ↗</a>
         </div>
@@ -110,23 +153,45 @@ MPE (Software) @ University of Sydney
 
       <div class="taskbar">
         <span>◆ rugved.dev</span>
-        <button id="desktop-exit">⏻ Back to room</button>
-        <time id="clock"></time>
+        <button class="desktop-exit">⏻ Back to room</button>
+        <time class="clock"></time>
+      </div>
+    </div>
+
+    <div id="socials" class="desktop" data-screen="socials">
+      <div class="socials">
+        <h2>Find me online</h2>
+        <a class="social" href="https://github.com/Rugsssss" target="_blank" rel="noopener"><span>🐙</span><b>GitHub</b><small>github.com/Rugsssss</small></a>
+        <a class="social" href="mailto:rugu9000@gmail.com"><span>✉️</span><b>Email</b><small>rugu9000@gmail.com</small></a>
+        <a class="social" href="https://www.linkedin.com/in/rugved-deshmukh-b190041b7/" target="_blank" rel="noopener"><span>💼</span><b>LinkedIn</b><small>Rugved Deshmukh</small></a>
+        <a class="social" id="spotify-link" href="https://open.spotify.com/user/lfxr1xxqk8nfg3zogcu4djpop" target="_blank" rel="noopener"><span>🎧</span><b>Spotify</b><small>what I code to</small></a>
+      </div>
+      <div class="taskbar">
+        <span>◆ rugved.dev</span>
+        <button class="desktop-exit">⏻ Back to room</button>
+        <time class="clock"></time>
       </div>
     </div>
 
     <header>
       <h1>Rugved Deshmukh</h1>
-      <nav aria-label="Sections">
-        <button data-open="about">About</button>
-        <button data-open="projects">Projects</button>
-        <button data-open="systems">Systems</button>
-        <button data-open="graphics">Graphics</button>
-        <button data-open="research">Research</button>
-        <button data-open="fun">Fun</button>
-        <button data-open="contact">Contact</button>
-      </nav>
       <button id="plain-toggle">Plain view</button>
+      <button id="theme-toggle" aria-label="Dark mode" aria-pressed="false">
+        <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" /></svg>
+        <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5" /><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" /></svg>
+      </button>
+      <div class="menu">
+        <button id="menu-toggle" aria-expanded="false" aria-controls="nav"><span class="burger" aria-hidden="true"><i></i><i></i><i></i></span>Menu</button>
+        <!-- data-open = the section (and, in 3D, the object the camera flies to: HOTSPOTS in src/main.js);
+             data-screen = zoom into that monitor instead (plain view still uses data-open) -->
+        <nav id="nav" aria-label="Sections">
+          <button data-open="about" style="--i: 0">About</button>
+          <button data-open="projects" data-screen="projects" style="--i: 1">Projects</button>
+          <button data-open="research" style="--i: 2">Research</button>
+          <button data-open="graphics" style="--i: 3">Graphics</button>
+          <button data-open="contact" data-screen="socials" style="--i: 4">Contact</button>
+        </nav>
+      </div>
     </header>
 
     <!-- Each <dialog> is one section. The 3D object that opens it is mapped in src/main.js (HOTSPOTS). -->
@@ -134,11 +199,25 @@ MPE (Software) @ University of Sydney
       <button class="close" aria-label="Close">×</button>
       <h2>About</h2>
       <p>Software engineer who likes building things that are fast and feel good to use, from medical device tooling to voxel engines.</p>
+      <p>📍 Currently based in <b>Sydney, Australia</b> (Pune → Bangalore → Sydney).</p>
+      <h3 class="section">Experience</h3>
+      <article>
+        <h4>Boston Scientific — Software Developer Intern <small>APAC R&D Urology · 2023</small></h4>
+        <p>Linux benchmarking tools for medical devices and a real-time performance and resource management system. Qt UI development for devices.</p>
+      </article>
+      <article>
+        <h4>Open-source contributor — AOSSIE &amp; Kiwix <small>Projects from GSoC organisations · contributor</small></h4>
+        <p>PictoPy, an open-source photo manager (PyQt5 UI, smart tagging with OpenCV + PyTorch), and Kiwix's YouTube UI revamp.</p>
+      </article>
+      <article>
+        <h4>Freelance UI/UX &amp; Web Developer <small>2021–2024</small></h4>
+        <p>Responsive, performance-optimised sites and designs for clients, plus ongoing maintenance.</p>
+      </article>
+      <h3 class="section">Education</h3>
       <ul>
         <li><b>Masters of Professional Engineering (Software)</b>, University of Sydney — 2026–2028</li>
         <li><b>B.Tech Computer Science</b>, M.S. Ramaiah University of Applied Sciences — CGPA 8.85</li>
       </ul>
-      <p>Pune → Bangalore → Sydney.</p>
       <p><a href="/resume.pdf" download>Download resume (PDF)</a></p>
     </dialog>
 
@@ -146,8 +225,13 @@ MPE (Software) @ University of Sydney
       <button class="close" aria-label="Close">×</button>
       <h2>Projects</h2>
       <article>
+        <h3>This portfolio <small>Three.js · WebGL · Vite · GSAP</small></h3>
+        <p>An interactive 3D room where every object leads somewhere: camera flights to clickable hotspots, live monitors that turn into real web pages up close, day/night lighting with synced RGB glows, and comic-panel easter eggs.</p>
+        <a href="https://github.com/Rugsssss/PortfolioWebsite" target="_blank" rel="noopener">GitHub ↗</a>
+      </article>
+      <article>
         <h3>AOSSIE — PictoPy <small>PyQt5 · OpenCV · PyTorch · SQLite</small></h3>
-        <p>Open-source photo manager (GSoC). Built UI in PyQt5 and smart tagging of objects, faces and scenes with OpenCV + PyTorch.</p>
+        <p>Open-source photo manager by AOSSIE (a GSoC organisation) that I contributed to: UI in PyQt5 and smart tagging of objects, faces and scenes with OpenCV + PyTorch.</p>
         <a href="https://github.com/AOSSIE-Org/PictoPy" target="_blank" rel="noopener">GitHub ↗</a>
       </article>
       <article>
@@ -158,20 +242,6 @@ MPE (Software) @ University of Sydney
       <article>
         <h3>Freelance UI/UX & Web <small>2021–2024</small></h3>
         <p>Responsive, performance-optimized sites and designs for clients, plus ongoing maintenance.</p>
-      </article>
-    </dialog>
-
-    <dialog id="systems">
-      <button class="close" aria-label="Close">×</button>
-      <h2>Systems</h2>
-      <article>
-        <h3>Boston Scientific — Software Developer <small>APAC R&D Urology · 2023</small></h3>
-        <p>Linux benchmarking tools for medical devices and a real-time performance and resource management system. Qt UI development for devices.</p>
-      </article>
-      <article>
-        <h3>RPRMS <small>Python · Bash · psutil · Linux</small></h3>
-        <p>High-efficiency real-time performance &amp; resource monitoring for Linux devices, with visualization and storage of metrics.</p>
-        <a href="https://github.com/Rugsssss/RPRMS" target="_blank" rel="noopener">GitHub ↗</a>
       </article>
     </dialog>
 
@@ -187,17 +257,35 @@ MPE (Software) @ University of Sydney
       <p>Also: Unity, Unreal Engine 4, OpenGL.</p>
     </dialog>
 
+    <dialog id="gsoc">
+      <button class="close" aria-label="Close">×</button>
+      <h2>Google Summer of Code</h2>
+      <p>My open-source contributions to projects run by Google Summer of Code organisations.</p>
+      <article>
+        <h3>AOSSIE — PictoPy <small>PyQt5 · OpenCV · PyTorch · SQLite</small></h3>
+        <p>Open-source photo manager. Contributed UI in PyQt5 and smart tagging of objects, faces and scenes with OpenCV + PyTorch.</p>
+        <a href="https://github.com/AOSSIE-Org/PictoPy" target="_blank" rel="noopener">GitHub ↗</a>
+      </article>
+      <article>
+        <h3>Kiwix — YouTube UI Revamp <small>JavaScript · HTML · CSS · Python</small></h3>
+        <p>Frontend contributions to Kiwix's GSoC project, improving cross-platform compatibility and accessibility.</p>
+        <a href="https://github.com/openzim/youtube" target="_blank" rel="noopener">GitHub ↗</a>
+      </article>
+    </dialog>
+
     <dialog id="research">
       <button class="close" aria-label="Close">×</button>
       <h2>Research</h2>
       <article>
-        <h3>Enhancing Stress and Anxiety Detection Accuracy using Multimodal Sensor Data</h3>
-        <p><b>First author</b>, BIDA 2025 (Springer Nature). Real-time, non-invasive stress prediction from wearable signals (ACC, skin temperature, EDA) with machine learning.</p>
-        <a href="#">Paper</a> <!-- TODO: DOI link -->
-      </article>
-      <article>
-        <h3>Detection of FTP and SSH Brute-force Attacks using Machine Learning</h3>
-        <p>Classifying normal vs. malicious traffic on the CSE-CIC-IDS2018 dataset from packet throughput.</p>
+        <h3>Enhancing Stress and Anxiety Detection Accuracy Through Multimodal Sensor Fusion and Advanced Machine Learning Techniques <small>BIDA 2025 · Springer</small></h3>
+        <p><b>First author</b>, with Dev Sheth, Vinay Dubey, Aaditi Jadwani and K. M. Yogesh (M. S. Ramaiah University of Applied Sciences). Published in <i>Business Intelligence and Data Analytics: Proceedings of BIDA 2025, Volume 2</i>, Smart Innovation, Systems and Technologies vol. 454, pp. 277–295.</p>
+        <p>A method for predicting stress and anxiety levels from wearable-device signals: <b>accelerometer (ACC)</b>, <b>skin temperature</b> and <b>electrodermal activity (EDA)</b>. Machine learning models classify stress and anxiety states from features extracted from these signals, enabling real-time, non-invasive monitoring.</p>
+        <ul>
+          <li><b>Decision Tree</b> (best overall): 93.77% accuracy, 94.01% precision, 94.29% recall</li>
+          <li><b>K-Nearest Neighbors</b>: 92.48% accuracy, 89.41% precision, 95.24% recall</li>
+        </ul>
+        <p>The results show these techniques work for non-invasive stress detection, a step toward early intervention and personalised mental-health monitoring in daily life.</p>
+        <a href="https://link.springer.com/chapter/10.1007/978-3-032-07837-7_22" target="_blank" rel="noopener">Read it on Springer ↗</a> · DOI 10.1007/978-3-032-07837-7_22
       </article>
     </dialog>
 
@@ -206,42 +294,17 @@ MPE (Software) @ University of Sydney
       <h2>Contact</h2>
       <ul>
         <li><a href="mailto:rugu9000@gmail.com">rugu9000@gmail.com</a></li>
-        <li><a href="#">LinkedIn</a></li> <!-- TODO: link -->
+        <li><a href="https://www.linkedin.com/in/rugved-deshmukh-b190041b7/" target="_blank" rel="noopener">LinkedIn ↗</a></li>
         <li><a href="https://github.com/Rugsssss" target="_blank" rel="noopener">GitHub ↗</a></li>
       </ul>
-    </dialog>
-
-    <dialog id="fun">
-      <button class="close" aria-label="Close">×</button>
-      <h2>Fun facts</h2>
-      <article>
-        <h3>🎮 Gaming</h3>
-        <p>Valorant regular. <!-- TODO: rank, main agent, favourite map --></p>
-        <!-- TODO: other games you're into -->
-      </article>
-      <article>
-        <h3>📺 Anime</h3>
-        <p>Trigun is a favourite. The poster on my door is one I designed. <!-- TODO: other favourites --></p>
-      </article>
-      <article>
-        <h3>🎧 Music</h3>
-        <p>Lofi while I code. The MP3 player on the bed has the controls, and the footer toggle mutes it.</p>
-        <p><a id="spotify-link" href="https://open.spotify.com/user/lfxr1xxqk8nfg3zogcu4djpop" target="_blank" rel="noopener">My Spotify profile ↗</a></p>
-      </article>
-    </dialog>
-
-    <dialog id="secret">
-      <button class="close" aria-label="Close">×</button>
-      <h2>🗑️ Rejected ideas</h2>
-      <p>Version 1 of this site was a single &lt;h1&gt;. It's in here somewhere.</p>
     </dialog>
 
     <dialog id="credits">
       <button class="close" aria-label="Close">×</button>
       <h2>Credits</h2>
       <ul>
-        <li>"<a href="https://sketchfab.com/3d-models/low-poly-isometric-room-56cf7d5811304608b5e6d724195c6ccd">Low Poly Isometric Room</a>" by <a href="https://sketchfab.com/amurin">amurin</a>, <a href="http://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a></li>
         <li>"Gaming Computer" by Alex Safayan, via <a href="https://poly.pizza">Poly Pizza</a></li> <!-- TODO: confirm license + model link -->
+        <li>"<a href="https://sketchfab.com/3d-models/isometric-room-house-game-ready-low-poly-5bf26563f465417397c20531e22a4cfa">Isometric room, house, game-ready, low poly.</a>" by <a href="https://sketchfab.com/gbarzu">gbarzu</a>, <a href="http://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a></li>
         <li>"Low Poly Controller" by Ginsta, via <a href="https://poly.pizza">Poly Pizza</a></li> <!-- TODO: confirm license + model link -->
         <li>"<a href="https://sketchfab.com/3d-models/spike-valorant-52701a0992274f86b4477a35f7c2aa0c">Spike Valorant</a>" by <a href="https://sketchfab.com/JokeTea">JokeTea</a>, <a href="http://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a></li>
         <li>"<a href="https://sketchfab.com/3d-models/mp3-player-1caa0de6536d4d40ae5f68e593b4d9c0">mp3 player</a>" by <a href="https://sketchfab.com/honehonekun0515">honehonekun0515</a>, <a href="http://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a></li>
@@ -249,18 +312,153 @@ MPE (Software) @ University of Sydney
         <li>"<a href="https://sketchfab.com/3d-models/golden-labrador-laying-down-93ccea4774854425a55611b72b750ca2">Golden Labrador (Laying Down)</a>" by <a href="https://sketchfab.com/dwigfor">David Wigforss</a>, <a href="http://creativecommons.org/licenses/by-nc/4.0/">CC-BY-NC-4.0</a></li>
         <li>"<a href="https://sketchfab.com/3d-models/coffee-mug-school-project-5f5ccee1514c440887c072fae8e0d699">Coffee Mug (School Project)</a>" by <a href="https://sketchfab.com/FrenchBaguette">Ole Gunnar Isager</a>, <a href="http://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a></li>
         <li>Music: "Tokyo Lofi" and "Lofi Gaming" by Zephira Music, via <a href="https://pixabay.com/music/">Pixabay</a> (Pixabay Content License)</li>
-        <li>Window (day): "<a href="https://commons.wikimedia.org/wiki/File:AUS_Sydney,_Central_Business_District,_Sydney_Opera_House_046.jpg">Sydney Opera House 046</a>" by -wuppertaler, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>, cropped</li>
-        <li>Window (night): "<a href="https://commons.wikimedia.org/wiki/File:Sydney_Harbour_night_skyline.jpg">Sydney Harbour night skyline</a>" by Daniel Falconer, <a href="https://creativecommons.org/licenses/by/2.0/">CC BY 2.0</a>, cropped</li>
+        <li>Sydney photo (day): "<a href="https://commons.wikimedia.org/wiki/File:AUS_Sydney,_Central_Business_District,_Sydney_Opera_House_046.jpg">Sydney Opera House 046</a>" by -wuppertaler, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>, cropped</li>
+        <li>Sydney photo (night): "<a href="https://commons.wikimedia.org/wiki/File:Sydney_Harbour_night_skyline.jpg">Sydney Harbour night skyline</a>" by Daniel Falconer, <a href="https://creativecommons.org/licenses/by/2.0/">CC BY 2.0</a>, cropped</li>
+        <li>TV: a GIF from <i>Mr. Robot</i> (USA Network)</li>
+        <li>Paper poster: cover of <i>Business Intelligence and Data Analytics</i> (BIDA 2025 proceedings), Springer</li>
         <li>Door poster: my own design using artwork from <i>Trigun</i> by Yasuhiro Nightow</li>
       </ul>
     </dialog>
 
+    <!-- Plain view: the whole portfolio as a bento grid of glass tiles (src/plain.js animates it).
+         Tile ids "tile-<section>" are where the menu scrolls to. -->
+    <main id="plain">
+      <div class="bento">
+        <section class="tile w2 h2 hero" id="tile-about">
+          <p class="eyebrow">📍 Sydney, Australia</p>
+          <h2>Hi, I'm <span class="grad">Rugved Deshmukh</span></h2>
+          <p class="lead">Software engineer who likes building things that are fast and feel good to use, from medical-device tooling to voxel engines.</p>
+          <p>I've been writing code since 2011: Visual Basic first, then C++, Unreal Engine 4 and Java, and these days mostly Python and JavaScript. Currently doing a Masters of Professional Engineering (Software) at the University of Sydney.</p>
+          <div class="cta">
+            <a class="pill solid" href="https://github.com/Rugsssss" target="_blank" rel="noopener">GitHub ↗</a>
+            <a class="pill" href="https://www.linkedin.com/in/rugved-deshmukh-b190041b7/" target="_blank" rel="noopener">LinkedIn ↗</a>
+            <a class="pill" href="mailto:rugu9000@gmail.com">Email</a>
+            <!-- TODO: resume button once public/resume.pdf exists: <a class="pill" href="/resume.pdf" download>Resume</a> -->
+          </div>
+        </section>
+
+        <section class="tile w2" id="tile-skills">
+          <p class="eyebrow">Skills</p>
+          <div class="chips">
+            <span class="chip">Python</span><span class="chip">C++</span><span class="chip">JavaScript</span><span class="chip">Java</span><span class="chip">HTML &amp; CSS</span>
+            <span class="chip">Three.js / WebGL</span><span class="chip">OpenGL</span><span class="chip">PyQt5 &amp; Qt</span><span class="chip">OpenCV</span><span class="chip">PyTorch</span>
+            <span class="chip">Machine learning</span><span class="chip">Linux &amp; Bash</span><span class="chip">SQLite</span><span class="chip">Unreal Engine 4</span><span class="chip">Unity</span>
+            <span class="chip">Figma</span><span class="chip">Photoshop</span><span class="chip">After Effects</span><span class="chip">Premiere Pro</span>
+          </div>
+        </section>
+
+        <section class="tile w2" id="tile-education">
+          <p class="eyebrow">Education</p>
+          <ol class="timeline">
+            <li><b>Masters of Professional Engineering (Software)</b> <small>University of Sydney · 2026–2028</small></li>
+            <li><b>B.Tech Computer Science</b> <small>M.S. Ramaiah University of Applied Sciences · CGPA 8.85</small></li>
+          </ol>
+        </section>
+
+        <section class="tile w2" id="tile-experience">
+          <p class="eyebrow">Experience</p>
+          <ol class="timeline">
+            <li><b>Boston Scientific</b> — Software Developer Intern <small>APAC R&amp;D Urology · 2023</small><span>Linux benchmarking tools for medical devices, a real-time performance and resource management system, and Qt UI development for devices.</span></li>
+            <li><b>Open-source contributor</b> — AOSSIE &amp; Kiwix <small>Projects from GSoC organisations</small><span>PictoPy (PyQt5 UI, smart tagging with OpenCV + PyTorch) and Kiwix's YouTube UI revamp.</span></li>
+            <li><b>Freelance</b> — Web developer, UI/UX &amp; video editor <small>2021–2024</small><span>Responsive, performance-optimised sites and designs for clients, plus ongoing maintenance.</span></li>
+          </ol>
+        </section>
+
+        <section class="tile w2 research" id="tile-research">
+          <img src="/decor/paper.jpg" alt="Cover of Business Intelligence and Data Analytics: Proceedings of BIDA 2025" loading="lazy" />
+          <div>
+            <p class="eyebrow">Research · First author · BIDA 2025, Springer</p>
+            <h3>Enhancing Stress and Anxiety Detection Accuracy Through Multimodal Sensor Fusion and Advanced Machine Learning Techniques</h3>
+            <p>A method for predicting stress and anxiety levels from physiological signals recorded by wearable devices: accelerometer (ACC), skin temperature and electrodermal activity (EDA). Machine learning models classify stress and anxiety states from features extracted from these signals, enabling real-time monitoring. Decision tree and k-nearest-neighbour models both proved strong predictors, with decision trees performing best overall, pointing to a reliable, non-invasive tool for early intervention and personalised mental-health monitoring in daily life.</p>
+            <a href="https://link.springer.com/chapter/10.1007/978-3-032-07837-7_22" target="_blank" rel="noopener">Read it on Springer ↗</a>
+          </div>
+        </section>
+
+        <section class="tile w2" id="tile-projects">
+          <p class="eyebrow">Featured project</p>
+          <h3>🏠 This portfolio</h3>
+          <p class="tags">Three.js · WebGL · Vite · GSAP · Canvas 2D</p>
+          <p>An interactive 3D room where every object leads somewhere: camera flights to clickable objects, live monitors that turn into real web pages up close, day/night lighting and comic-panel easter eggs.</p>
+          <div class="cta">
+            <a class="pill solid" href="https://github.com/Rugsssss/PortfolioWebsite" target="_blank" rel="noopener">GitHub ↗</a>
+            <button class="pill" data-plain-off>Open the 3D room</button>
+          </div>
+        </section>
+
+        <section class="tile" id="tile-graphics">
+          <h3>🧊 Voxel Engine</h3>
+          <p class="tags">Python · OpenGL</p>
+          <p>Minecraft-like voxel engine with custom shaders, clouds, fog, water and chunked terrain, fast on low-end hardware (thanks to StanislavPetrovV for guidance).</p>
+          <a href="https://github.com/Rugsssss/Voxel-Engine" target="_blank" rel="noopener">GitHub ↗</a>
+        </section>
+        <section class="tile">
+          <h3>📈 RPRMS</h3>
+          <p class="tags">Python · Bash · psutil</p>
+          <p>Real-time performance &amp; resource monitoring for Linux devices, with visualisation and storage of metrics.</p>
+          <a href="https://github.com/Rugsssss/RPRMS" target="_blank" rel="noopener">GitHub ↗</a>
+        </section>
+        <section class="tile">
+          <h3>🖼️ PictoPy</h3>
+          <p class="tags">PyQt5 · OpenCV · PyTorch</p>
+          <p>AOSSIE's open-source photo manager: I contributed the PyQt5 UI and smart tagging of objects, faces and scenes.</p>
+          <a href="https://github.com/AOSSIE-Org/PictoPy" target="_blank" rel="noopener">GitHub ↗</a>
+        </section>
+        <section class="tile">
+          <h3>📚 Kiwix</h3>
+          <p class="tags">JavaScript · HTML · CSS · Python</p>
+          <p>Frontend contributions to Kiwix's YouTube UI revamp, improving cross-platform compatibility and accessibility.</p>
+          <a href="https://github.com/openzim/youtube" target="_blank" rel="noopener">GitHub ↗</a>
+        </section>
+        <section class="tile">
+          <h3>🧭 A* Pathfinding</h3>
+          <p class="tags">Python · PyGame</p>
+          <p>A visualiser for the A* pathfinding algorithm.</p>
+          <a href="https://github.com/Rugsssss/ASTARPATH" target="_blank" rel="noopener">GitHub ↗</a>
+        </section>
+        <section class="tile">
+          <h3>🐍 Snake</h3>
+          <p class="tags">Python · PyGame</p>
+          <p>A little snake game, made while learning PyGame.</p>
+          <a href="https://github.com/Rugsssss/SnakePython" target="_blank" rel="noopener">GitHub ↗</a>
+        </section>
+        <section class="tile">
+          <h3>🗡️ Shattered Pixel Dungeon</h3>
+          <p class="tags">Java · Software quality</p>
+          <p>Improvements to the open-source roguelike for ELEC5618 Software Quality Engineering at USyd.</p>
+          <a href="https://github.com/Rugsssss/SWQE-Shattered-Pixel-Dungeon-Improvements" target="_blank" rel="noopener">GitHub ↗</a>
+        </section>
+        <section class="tile">
+          <h3>🤖 Random Facts Bot</h3>
+          <p class="tags">Python</p>
+          <p>A bot that posts random facts on Twitter, more or less.</p>
+          <a href="https://github.com/Rugsssss/Random-Facts-Twitter-Bot-" target="_blank" rel="noopener">GitHub ↗</a>
+        </section>
+
+        <section class="tile stat"><p class="eyebrow">Fun fact</p><b>#4</b><p>in the world at Microsoft PowerPoint 2016 (2018)</p></section>
+        <section class="tile stat"><p class="eyebrow">Fun fact</p><b><span data-count="15">15</span>+ years</b><p>writing code, since starting with Visual Basic in 2011</p></section>
+
+        <section class="tile full" id="tile-contact">
+          <p class="eyebrow">Say hi</p>
+          <h3>Let's build something</h3>
+          <p>Open to collaborating on anything interesting.</p>
+          <div class="cta">
+            <a class="pill solid" href="mailto:rugu9000@gmail.com">rugu9000@gmail.com</a>
+            <a class="pill" href="https://www.linkedin.com/in/rugved-deshmukh-b190041b7/" target="_blank" rel="noopener">LinkedIn ↗</a>
+            <a class="pill" href="https://github.com/Rugsssss" target="_blank" rel="noopener">GitHub ↗</a>
+            <a class="pill" href="http://www.instagram.com/ruguuuuu" target="_blank" rel="noopener">Instagram ↗</a>
+            <a class="pill" href="https://open.spotify.com/user/lfxr1xxqk8nfg3zogcu4djpop" target="_blank" rel="noopener">Spotify ↗</a>
+          </div>
+        </section>
+      </div>
+    </main>
+
     <footer>
-      <span class="hint">Click objects in the room · lamp toggles the lights</span>
+      <span class="hint">Click objects in the room · the lamp by the door toggles the lights</span>
       <button id="sound" class="link" aria-pressed="false">♪ Music off</button>
       <button data-open="credits" class="link">Credits</button>
     </footer>
 
+    <script type="module" src="/src/plain.js"></script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
