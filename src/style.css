@@ -1,17 +1,39 @@
+/* Happy Hues palette 13 (happyhues.co/palettes/13).
+   Light = daytime, dark = lamp clicked (body.dark). */
 :root {
-  --bg: #e9e4f2;
-  --panel: rgba(255, 255, 255, 0.92);
-  --text: #1d1b26;
-  --muted: #5d5870;
-  --accent: #6c4ee0;
+  --ink: #0f0e17;
+  --paper: #fffffe;
+  --grey: #a7a9be;
+  --slate: #2e2f3e;
+  --orange: #ff8906;
+  --red: #f25f4c;
+  --pink: #e53170;
+
+  --bg: var(--paper);
+  --panel: var(--paper);
+  --text: var(--ink);
+  --muted: var(--slate); /* palette paragraph grey is too faint on white, slate reads better */
+  --line: var(--ink);
+  --accent: var(--orange);
+  --link: var(--pink);
+  /* frosted glass panels */
+  --glass: rgba(255, 255, 254, 0.6);
+  --glass-edge: rgba(255, 255, 255, 0.7);
+  --glass-shine: rgba(255, 255, 255, 0.6);
+  --glass-shadow: 0 1px 2px rgba(15, 14, 23, 0.08), 0 12px 24px -6px rgba(15, 14, 23, 0.18), 0 32px 64px -16px rgba(15, 14, 23, 0.28);
   color-scheme: light;
 }
 body.dark {
-  --bg: #12101a;
-  --panel: rgba(28, 25, 40, 0.92);
-  --text: #ece9f5;
-  --muted: #a49fb8;
-  --accent: #a995ff;
+  --bg: var(--ink);
+  --panel: var(--ink);
+  --text: var(--paper);
+  --muted: var(--grey);
+  --line: var(--slate);
+  --link: var(--orange);
+  --glass: rgba(15, 14, 23, 0.55);
+  --glass-edge: rgba(255, 255, 254, 0.14);
+  --glass-shine: rgba(255, 255, 254, 0.12);
+  --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 24px -6px rgba(0, 0, 0, 0.4), 0 32px 64px -16px rgba(0, 0, 0, 0.6);
   color-scheme: dark;
 }
 
@@ -23,7 +45,7 @@ body {
   color: var(--text);
   transition: background 0.6s;
 }
-a { color: var(--accent); }
+a { color: var(--link); }
 button { font: inherit; cursor: pointer; }
 
 #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
@@ -37,20 +59,22 @@ header, footer {
   z-index: 1;
 }
 header { top: 0; }
-footer { bottom: 0; justify-content: space-between; font-size: 13px; color: var(--muted); }
+footer { bottom: 0; justify-content: space-between; font-size: 13px; color: var(--text); }
 header > *, footer > * { pointer-events: auto; }
+#sound { margin-left: auto; }
 h1 { font-size: 18px; margin: 0 auto 0 0; }
-nav { display: flex; gap: 4px; flex-wrap: wrap; }
-header button, .link {
+nav { display: flex; gap: 6px; flex-wrap: wrap; }
+header button {
   background: var(--panel);
   color: var(--text);
-  border: 1px solid transparent;
+  border: 2px solid var(--line);
   border-radius: 999px;
-  padding: 4px 12px;
+  padding: 3px 12px;
   font-size: 14px;
+  font-weight: 600;
 }
-header button:hover, header button:focus-visible { border-color: var(--accent); }
-.link { background: none; text-decoration: underline; color: var(--muted); }
+header button:hover, header button:focus-visible { background: var(--accent); color: var(--ink); border-color: var(--ink); }
+.link { background: none; border: none; text-decoration: underline; color: inherit; font-size: 13px; }
 
 dialog {
   position: fixed;
@@ -59,30 +83,70 @@ dialog {
   width: min(440px, calc(100vw - 32px));
   max-height: calc(100vh - 120px);
   overflow: auto;
-  background: var(--panel);
   color: var(--text);
-  border: none;
-  border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
-  backdrop-filter: blur(8px);
+  /* Apple-style frosted glass */
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--glass-edge);
+  border-radius: 22px;
+  box-shadow: inset 0 1px 0 var(--glass-shine), var(--glass-shadow);
+
+  /* open/close: rise + scale with a soft overshoot; closing animates too (allow-discrete keeps it
+     displayed until the transition ends, @starting-style gives the entry its "from" state) */
+  opacity: 0;
+  transform: translateY(16px) scale(0.96);
+  transform-origin: bottom right;
+  transition:
+    opacity 0.25s ease,
+    transform 0.45s cubic-bezier(0.22, 1.25, 0.36, 1),
+    display 0.45s allow-discrete,
+    overlay 0.45s allow-discrete;
+}
+dialog[open] { opacity: 1; transform: none; }
+dialog:not([open]) { pointer-events: none; } /* still laid out while fading out; don't block clicks */
+@starting-style {
+  dialog[open] { opacity: 0; transform: translateY(16px) scale(0.96); }
+}
+/* content follows in a short stagger */
+dialog[open] > :not(.close) { animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+dialog[open] > :nth-child(3) { animation-delay: 0.05s; }
+dialog[open] > :nth-child(4) { animation-delay: 0.1s; }
+dialog[open] > :nth-child(5) { animation-delay: 0.15s; }
+dialog[open] > :nth-child(n + 6) { animation-delay: 0.2s; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) {
+  dialog, dialog[open] { transform: none; transition: opacity 0.2s ease, display 0.2s allow-discrete, overlay 0.2s allow-discrete; }
+  @starting-style { dialog[open] { transform: none; } }
+  dialog[open] > :not(.close) { animation: none; }
 }
 dialog::backdrop { background: transparent; }
 dialog:focus { outline: none; }
 dialog h2 { margin-top: 0; }
 dialog h3 { margin-bottom: 4px; font-size: 16px; }
-dialog small { color: var(--muted); font-weight: normal; display: block; }
+dialog p, dialog li { color: var(--muted); }
+dialog b { color: var(--text); }
+dialog small { color: var(--link); font-weight: 600; display: block; } /* pink on light, orange on dark: both readable */
 dialog article + article { margin-top: 16px; }
 .close {
   position: sticky; top: 0; float: right;
-  background: none; border: none; color: var(--muted);
-  font-size: 24px; line-height: 1;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--glass-edge); border: 1px solid var(--glass-edge); color: var(--text);
+  font-size: 18px; line-height: 1;
+  transition: background 0.2s, transform 0.2s;
 }
+.close:hover { background: var(--accent); color: var(--ink); transform: scale(1.08); }
+.close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 #tooltip {
   position: fixed; z-index: 2; pointer-events: none;
-  background: var(--panel); color: var(--text);
-  padding: 2px 10px; border-radius: 999px; font-size: 13px;
+  background: var(--glass); color: var(--text);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+  padding: 3px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
   transform: translate(12px, 12px);
 }
 
@@ -93,6 +157,14 @@ dialog article + article { margin-top: 16px; }
   transition: opacity 0.6s;
 }
 #loader.done { opacity: 0; pointer-events: none; }
+.loader-box { display: grid; justify-items: center; gap: 12px; }
+.cube { width: 64px; height: 64px; animation: bob 1.6s ease-in-out infinite; }
+.loader-name { margin: 0; font-weight: 700; font-size: 20px; }
+.loader-pct { margin: 0; font-size: 13px; color: var(--muted); }
+.bar { width: 180px; height: 6px; border-radius: 999px; border: 2px solid var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 0.3s; }
+@keyframes bob { 50% { transform: translateY(-10px) rotate(4deg); } }
+@media (prefers-reduced-motion: reduce) { .cube { animation: none; } }
 
 @media (max-width: 640px) {
   nav { order: 3; width: 100%; }
@@ -106,5 +178,6 @@ body.plain header, body.plain footer { position: static; }
 body.plain dialog {
   display: block; position: static;
   width: auto; max-width: 720px; max-height: none;
-  margin: 16px auto; box-shadow: none; backdrop-filter: none;
+  margin: 24px auto;
+  opacity: 1; transform: none; transition: none;
 }

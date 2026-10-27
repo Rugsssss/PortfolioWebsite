@@ -15,23 +15,33 @@ import { dressRoom } from './decor.js'
 const PROPS = {
   pc: { url: '/models/gaming-pc.glb', size: 1.75, modelRotation: [0, 0, 0], position: [-3.2, 1.37, -3.18], rotationY: Math.PI },
   controller: { url: '/models/controller.glb', size: 0.55, modelRotation: [0, 0, Math.PI / 2], position: [-2.85, 1.37, 0.35], rotationY: 0 },
+  spike: { url: '/models/spike.glb', size: 0.8, modelRotation: [0, 0, 0], position: [-2.12, 4.13, -3.75], rotationY: 0.4 }, // on the shelf, next to the books
+  mp3: { url: '/models/mp3-player.glb', size: 0.85, modelRotation: [0, 0, 0], position: [2.6, 0.92, 1.4], rotationY: -0.5, snap: true }, // on the bed (y snaps to the sheet)
+  neon: { url: '/models/neon.glb', size: 2.2, modelRotation: [0, 0, 0], position: [-4.06, 3.5, -1.2], rotationY: 0 }, // left wall, above the monitor
+  pet: { url: '/models/pet.glb', size: 1.5, modelRotation: [0, 0, 0], position: [3.3, 0.9, -1.3], rotationY: 0.94, snap: true }, // golden lab napping on the bed, face toward the room
+  mug: { url: '/models/mug.glb', size: 0.62, modelRotation: [0, 0, 0], position: [-3.75, 1.37, 0.45], rotationY: 0 }, // desk, USyd logo added in decor.js
 }
 
 // Clickable things -> which <dialog> to open. nodes = room node names (from the .gltf),
-// PROPS keys, 'door', or decor objects (posterVoxel, posterPaper, posterTrigun, window).
+// PROPS keys, 'door', or decor objects (posterPaper, posterTrigun, window, gsoc).
 // view = where the camera sits relative to the object's center when zoomed in.
 // The first hotspot for a panel is where the nav buttons fly to.
 const HOTSPOTS = [
   { label: 'Projects', panel: 'projects', nodes: ['Pantalla_20', 'Teclado_23', 'Raton_21', 'Alfombrilla_16'], view: [4.5, 1.2, 0.8] },
   { label: 'Systems', panel: 'systems', nodes: ['pc'], view: [3.6, 1.8, 3.8] },
   { label: 'Graphics & Games', panel: 'graphics', nodes: ['controller'], view: [1.4, 1.4, 1.2] },
-  { label: 'Voxel Engine', panel: 'graphics', nodes: ['posterVoxel'], view: [3.8, 0, 0] },
   { label: 'Research', panel: 'research', nodes: ['Libros_28', 'Estanteria_27'], view: [0.8, 0.4, 3.6] },
   { label: 'My paper', panel: 'research', nodes: ['posterPaper'], view: [0, 0, 3.6] },
   { label: 'About me', panel: 'about', nodes: ['Cama_4', 'Cojin_5', 'sabana_6', 'Mesa_noche_25'], view: [5, 4, 6] },
   { label: 'Sydney', panel: 'about', nodes: ['window'], view: [0, -0.6, 5.2] },
   { label: 'Fun facts', panel: 'fun', nodes: ['posterTrigun'], view: [3.4, 0, 0] },
-  { label: 'Contact', panel: 'contact', nodes: ['Pomo_24', 'door'], view: [6, 0.8, -0.5] },
+  { label: 'Valorant', panel: 'fun', nodes: ['spike'], view: [1.6, 1.0, 2.0] },
+  { label: 'Play lofi', panel: 'fun', action: 'music', nodes: ['mp3'], view: [0.25, 2.2, 0.35] }, // near top-down
+  { label: 'Neon', panel: 'fun', nodes: ['neon'], view: [5, 0.5, 0] },
+  { label: 'Pet', panel: 'fun', nodes: ['pet'], view: [2.2, 1.6, 2.2] },
+  { label: 'GSoC', panel: 'projects', nodes: ['gsoc'], view: [0, 0, 3] },
+  { label: 'USyd', panel: 'about', nodes: ['mug'], view: [1.6, 0.9, 1.4] },
+  { label: 'Contact', panel: 'contact', nodes: ['Pomo_24', 'door'], view: [6, 0.8, 0.5] },
   { label: '???', panel: 'secret', nodes: ['Papelera_3', 'Papeles_2', 'Papel_1'], view: [2.2, 1.6, 1.6] },
   { label: 'Lights', action: 'toggleDark', nodes: ['Lampara_26'] },
 ]
@@ -57,16 +67,14 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
 renderer.toneMapping = THREE.ACESFilmicToneMapping
 renderer.shadowMap.enabled = true
-renderer.shadowMap.type = THREE.PCFSoftShadowMap
+renderer.shadowMap.type = THREE.PCFShadowMap
 
-const DAY_BG = new THREE.Color(0xe4ddf2)
-const NIGHT_BG = new THREE.Color(0x0e0c16)
 const scene = new THREE.Scene()
-scene.background = DAY_BG.clone() // bloom drops canvas alpha, so the background is drawn in-scene
+// background: animated shader in decor.js (bloom drops canvas alpha, so it's drawn in-scene)
 scene.environment = new THREE.PMREMGenerator(renderer).fromScene(new RoomEnvironment()).texture
 scene.environmentIntensity = 0.6
 
-const hemi = new THREE.HemisphereLight(0xffffff, 0x8877aa, 1.2)
+const hemi = new THREE.HemisphereLight(0xffffff, 0xa7a9be, 1.2)
 const sun = new THREE.DirectionalLight(0xfff4e6, 1.8)
 sun.position.set(8, 12, 6)
 sun.castShadow = true
@@ -84,8 +92,8 @@ controls.enablePan = false
 controls.minDistance = 2
 controls.maxDistance = 45
 controls.maxPolarAngle = Math.PI / 2.1
-controls.minAzimuthAngle = -0.15 // room is open toward +x/+z, don't let people orbit behind the walls
-controls.maxAzimuthAngle = Math.PI / 2 + 0.15
+controls.minAzimuthAngle = 0.08 // room is open toward +x/+z; stop short of edge-on so the backs of the walls never show
+controls.maxAzimuthAngle = Math.PI / 2 - 0.08
 
 function homePosition() {
   // back off further on portrait screens so the whole room fits
@@ -96,7 +104,7 @@ function homePosition() {
 // Bloom only catches really bright things (LEDs, screen, fans); the threshold drops at night.
 const composer = new EffectComposer(renderer)
 composer.addPass(new RenderPass(scene, camera))
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.3, 0.5, 2.2)
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.3, 0.5, 3.2)
 composer.addPass(bloom)
 composer.addPass(new OutputPass())
 
@@ -115,7 +123,9 @@ controls.target.copy(HOME_TARGET)
 // ---------- loading ----------
 const manager = new THREE.LoadingManager()
 manager.onProgress = (_, loaded, total) => {
-  document.getElementById('progress').textContent = `${Math.round((loaded / total) * 100)}%`
+  const pct = `${Math.round((loaded / total) * 100)}%`
+  document.getElementById('progress').textContent = pct
+  document.getElementById('bar').style.width = pct
 }
 manager.onLoad = () => document.getElementById('loader').classList.add('done')
 const loader = new GLTFLoader(manager).setMeshoptDecoder(MeshoptDecoder)
@@ -134,6 +144,23 @@ function placeProp(wrapper, model, cfg) {
   model.position.set(-center.x * s, -box.min.y * s, -center.z * s)
   wrapper.position.set(...cfg.position)
   wrapper.rotation.y = cfg.rotationY
+  if (cfg.snap) wrapper.position.y = surfaceUnder(wrapper)
+}
+
+// Average height of the room surface under an object's footprint (centre + 4 corners), so props
+// sit on the lumpy bed sheet instead of floating at a fixed height.
+const down = new THREE.Raycaster()
+function surfaceUnder(obj) {
+  obj.updateMatrixWorld(true)
+  const box = new THREE.Box3().setFromObject(obj)
+  const c = box.getCenter(new THREE.Vector3())
+  const hx = (box.max.x - box.min.x) * 0.3
+  const hz = (box.max.z - box.min.z) * 0.3
+  const heights = [[0, 0], [-hx, -hz], [hx, -hz], [-hx, hz], [hx, hz]].map(([dx, dz]) => {
+    down.set(new THREE.Vector3(c.x + dx, 5, c.z + dz), new THREE.Vector3(0, -1, 0))
+    return down.intersectObject(room.scene, true).find((h) => h.point.y < 3)?.point.y // skip the wall rims up top
+  }).filter((y) => y !== undefined)
+  return heights.length ? heights.reduce((a, b) => a + b) / heights.length : obj.position.y
 }
 
 const [room, ...props] = await Promise.all([
@@ -141,6 +168,7 @@ const [room, ...props] = await Promise.all([
   ...Object.values(PROPS).map((p) => loader.loadAsync(p.url)),
 ])
 scene.add(room.scene)
+room.scene.updateMatrixWorld(true) // surfaceUnder() raycasts it before the first render
 room.scene.getObjectByName('Ordenador_19')?.removeFromParent() // replaced by the gaming PC
 
 const propObjects = {}
@@ -162,7 +190,7 @@ const doorBox = new THREE.Mesh(
 doorBox.position.set(-4.5, 1.7, 3.6)
 scene.add(doorBox)
 
-const decor = dressRoom({ scene, room: room.scene, pc: propObjects.pc.wrapper })
+const decor = dressRoom({ scene, room: room.scene, ...Object.fromEntries(Object.entries(propObjects).map(([k, p]) => [k, p.wrapper])) })
 
 // ---------- hotspots ----------
 const named = { door: doorBox, ...decor.objects, ...Object.fromEntries(Object.entries(propObjects).map(([k, p]) => [k, p.wrapper])) }
@@ -173,20 +201,23 @@ for (const h of HOTSPOTS) {
   for (const obj of h.objects) {
     obj.traverse((m) => {
       if (!m.isMesh) return
-      m.material = m.material.clone() // materials are shared across objects; clone so highlight is per-hotspot
+      // materials are shared across objects; clone so highlight is per-hotspot (some meshes have a material array)
+      m.material = Array.isArray(m.material) ? m.material.map((x) => x.clone()) : m.material.clone()
       h.meshes.push(m)
       meshToHotspot.set(m, h)
     })
   }
 }
 
-const accent = new THREE.Color(0x6c4ee0)
+const accent = new THREE.Color(0xff8906) // palette orange
 function highlight(h, on) {
   for (const m of h?.meshes ?? []) {
-    if (!m.material.emissive) continue
     m.userData.hover = on // decor.js leaves hovered materials alone
-    m.material.emissive.copy(on ? accent : new THREE.Color(0)).multiplyScalar(on ? 0.35 : 1)
-    if (on) m.material.emissiveIntensity = 1
+    for (const mat of [].concat(m.material)) {
+      if (!mat.emissive) continue
+      mat.emissive.copy(on ? accent : new THREE.Color(0)).multiplyScalar(on ? 0.35 : 1)
+      if (on) mat.emissiveIntensity = 1
+    }
   }
 }
 
@@ -244,6 +275,27 @@ if (location.search.includes('night')) toggleDark() // ?night starts with the li
 // shareable links: /#research opens that section
 if (location.hash && document.querySelector(`dialog${location.hash}`)) openPanel(location.hash.slice(1))
 
+// ---------- lofi: autoplays (as soon as the browser allows), controls on the MP3 player's screen ----------
+// The footer toggle is the always-visible way to stop it.
+const musicHotspot = HOTSPOTS.find((x) => x.action === 'music')
+const soundBtn = document.getElementById('sound')
+soundBtn.addEventListener('click', () => decor.music.toggle())
+decor.music.onChange(({ playing }) => {
+  musicHotspot.label = playing ? 'Lofi player' : 'Play lofi'
+  soundBtn.textContent = playing ? '♪ Music on' : '♪ Music off'
+  soundBtn.setAttribute('aria-pressed', playing)
+})
+decor.music.autostart()
+
+const MUSIC_ACTIONS = {
+  toggle: () => decor.music.toggle(),
+  next: () => decor.music.next(),
+  prev: () => decor.music.prev(),
+  up: () => decor.music.volume(0.04),
+  down: () => decor.music.volume(-0.04),
+  spotify: () => open(document.getElementById('spotify-link').href, '_blank', 'noopener'), // URL lives in index.html
+}
+
 // ---------- dark mode (the lamp) ----------
 function toggleDark() {
   const dark = document.body.classList.toggle('dark')
@@ -252,8 +304,6 @@ function toggleDark() {
   gsap.to(sun, { intensity: dark ? 0.05 : 1.8, ...t })
   gsap.to(lampLight, { intensity: dark ? 3.5 : 0, ...t })
   gsap.to(scene, { environmentIntensity: dark ? 0.08 : 0.6, ...t })
-  const bg = dark ? NIGHT_BG : DAY_BG
-  gsap.to(scene.background, { r: bg.r, g: bg.g, b: bg.b, ...t })
   gsap.to(decor.state, { night: dark ? 1 : 0, ...t })
 }
 
@@ -269,14 +319,15 @@ function pick(e) {
   raycaster.setFromCamera(pointer, camera)
   const hit = raycaster.intersectObjects(scene.children, true)[0]
   const h = hit && meshToHotspot.get(hit.object)
-  // apps on the monitor screen get their own label/panel
+  // apps on the monitor screen get their own label/panel; buttons on the MP3 screen control the music
   const app = hit?.object === decor.screenMesh ? decor.screenAppAt(hit.uv) : null
-  return { h, app }
+  const ctrl = hit?.object === decor.mp3Mesh ? decor.mp3ControlAt(hit.uv) : null
+  return { h, app, ctrl }
 }
 
 canvas.addEventListener('pointermove', (e) => {
   if (e.pointerType !== 'mouse') return
-  const { h, app } = pick(e)
+  const { h, app, ctrl } = pick(e)
   if (h !== hovered) {
     highlight(hovered, false)
     highlight(h, true)
@@ -285,7 +336,7 @@ canvas.addEventListener('pointermove', (e) => {
   canvas.style.cursor = h ? 'pointer' : ''
   tooltip.hidden = !h
   if (h) {
-    tooltip.textContent = app?.label ?? h.label
+    tooltip.textContent = ctrl?.label ?? app?.label ?? h.label
     tooltip.style.left = `${e.clientX}px`
     tooltip.style.top = `${e.clientY}px`
   }
@@ -293,8 +344,9 @@ canvas.addEventListener('pointermove', (e) => {
 canvas.addEventListener('pointerdown', (e) => (downAt = [e.clientX, e.clientY]))
 canvas.addEventListener('pointerup', (e) => {
   if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 5) return // was a drag
-  const { h, app } = pick(e)
+  const { h, app, ctrl } = pick(e)
   if (h?.action === 'toggleDark') toggleDark()
+  else if (ctrl) MUSIC_ACTIONS[ctrl.id]()
   else if (app) openPanel(app.panel, h)
   else if (h) openPanel(h.panel, h)
   else closePanels()
@@ -319,11 +371,12 @@ if (location.search.includes('debug')) {
   } }, 'copy').name('Copy values (paste into PROPS)')
 }
 
-const clock = new THREE.Clock()
+const timer = new THREE.Timer()
 renderer.setAnimationLoop(() => {
-  const dt = Math.min(clock.getDelta(), 0.1)
-  decor.update(clock.elapsedTime, dt)
-  bloom.threshold = 2.2 - decor.state.night * 0.9
+  timer.update()
+  const dt = Math.min(timer.getDelta(), 0.1)
+  decor.update(timer.getElapsed(), dt)
+  bloom.threshold = 3.2 - decor.state.night * 1.9 // high by day so floor reflections don't glow; 1.3 at night
   bloom.strength = 0.3 + decor.state.night * 0.35
   controls.update()
   composer.render()

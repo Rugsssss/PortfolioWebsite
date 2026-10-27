@@ -8,7 +8,18 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <div id="loader"><p>Loading room… <span id="progress">0%</span></p></div>
+    <div id="loader">
+      <div class="loader-box">
+        <svg class="cube" viewBox="0 0 100 100" aria-hidden="true">
+          <polygon points="50,8 90,30 50,52 10,30" fill="#ff8906" />
+          <polygon points="10,30 50,52 50,96 10,74" fill="#f25f4c" />
+          <polygon points="90,30 50,52 50,96 90,74" fill="#e53170" />
+        </svg>
+        <p class="loader-name">Rugved Deshmukh</p>
+        <div class="bar"><i id="bar"></i></div>
+        <p class="loader-pct">Loading room… <span id="progress">0%</span></p>
+      </div>
+    </div>
 
     <canvas id="scene" aria-hidden="true"></canvas>
     <div id="tooltip" hidden></div>
@@ -123,7 +134,8 @@
       </article>
       <article>
         <h3>🎧 Music</h3>
-        <p><!-- TODO: what you listen to while coding, favourite artists --></p>
+        <p>Lofi while I code. The MP3 player on the bed has the controls, and the footer toggle mutes it.</p>
+        <p><a id="spotify-link" href="https://open.spotify.com/user/lfxr1xxqk8nfg3zogcu4djpop" target="_blank" rel="noopener">My Spotify profile ↗</a></p>
       </article>
     </dialog>
 
@@ -140,6 +152,12 @@
         <li>"<a href="https://sketchfab.com/3d-models/low-poly-isometric-room-56cf7d5811304608b5e6d724195c6ccd">Low Poly Isometric Room</a>" by <a href="https://sketchfab.com/amurin">amurin</a>, <a href="http://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a></li>
         <li>"Gaming Computer" by Alex Safayan, via <a href="https://poly.pizza">Poly Pizza</a></li> <!-- TODO: confirm license + model link -->
         <li>"Low Poly Controller" by Ginsta, via <a href="https://poly.pizza">Poly Pizza</a></li> <!-- TODO: confirm license + model link -->
+        <li>"<a href="https://sketchfab.com/3d-models/spike-valorant-52701a0992274f86b4477a35f7c2aa0c">Spike Valorant</a>" by <a href="https://sketchfab.com/JokeTea">JokeTea</a>, <a href="http://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a></li>
+        <li>"<a href="https://sketchfab.com/3d-models/mp3-player-1caa0de6536d4d40ae5f68e593b4d9c0">mp3 player</a>" by <a href="https://sketchfab.com/honehonekun0515">honehonekun0515</a>, <a href="http://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a></li>
+        <li>"<a href="https://sketchfab.com/3d-models/game-ready-japanese-small-vertical-neon-sign-5849c107ecb7472bb1eef028f5b97f0d">Game Ready Japanese Small Vertical Neon Sign</a>" by <a href="https://sketchfab.com/alexbescg">Alex Bes</a>, <a href="http://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a></li>
+        <li>"<a href="https://sketchfab.com/3d-models/golden-labrador-laying-down-93ccea4774854425a55611b72b750ca2">Golden Labrador (Laying Down)</a>" by <a href="https://sketchfab.com/dwigfor">David Wigforss</a>, <a href="http://creativecommons.org/licenses/by-nc/4.0/">CC-BY-NC-4.0</a></li>
+        <li>"<a href="https://sketchfab.com/3d-models/coffee-mug-school-project-5f5ccee1514c440887c072fae8e0d699">Coffee Mug (School Project)</a>" by <a href="https://sketchfab.com/FrenchBaguette">Ole Gunnar Isager</a>, <a href="http://creativecommons.org/licenses/by/4.0/">CC-BY-4.0</a></li>
+        <li>Music: "Tokyo Lofi" and "Lofi Gaming" by Zephira Music, via <a href="https://pixabay.com/music/">Pixabay</a> (Pixabay Content License)</li>
         <li>Window (day): "<a href="https://commons.wikimedia.org/wiki/File:AUS_Sydney,_Central_Business_District,_Sydney_Opera_House_046.jpg">Sydney Opera House 046</a>" by -wuppertaler, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>, cropped</li>
         <li>Window (night): "<a href="https://commons.wikimedia.org/wiki/File:Sydney_Harbour_night_skyline.jpg">Sydney Harbour night skyline</a>" by Daniel Falconer, <a href="https://creativecommons.org/licenses/by/2.0/">CC BY 2.0</a>, cropped</li>
         <li>Door poster: my own design using artwork from <i>Trigun</i> by Yasuhiro Nightow</li>
@@ -148,6 +166,7 @@
 
     <footer>
       <span class="hint">Click objects in the room · lamp toggles the lights</span>
+      <button id="sound" class="link" aria-pressed="false">♪ Music off</button>
       <button data-open="credits" class="link">Credits</button>
     </footer>
 
