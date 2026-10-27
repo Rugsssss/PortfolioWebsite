@@ -28,11 +28,10 @@ const PAINT = {
   'WallLamp.001': PALETTE.orange, // the lights toggle: stands out against the wall
 }
 
-// Drop real images at these paths to replace the drawn placeholders.
-// cover = material name of a room picture to paint over (w/h then only set the drawing's aspect); else a framed poster at position.
+// cover = material name of a room picture to paint the image over; otherwise a framed poster (w × h) at position.
 const POSTERS = {
-  posterPaper: { image: '/decor/paper.jpg', draw: drawPaperPoster, w: 1.15, h: 1.55, cover: 'Picture2' }, // back wall, middle frame
-  posterTrigun: { image: '/decor/trigun.jpg', draw: drawTrigunPoster, w: 1.04, h: 1.6, position: [2.85, 2.3, -4.03], rotationY: 0 }, // on the door
+  posterPaper: { image: '/decor/paper.jpg', cover: 'Picture2' }, // back wall, middle frame
+  posterTrigun: { image: '/decor/trigun.jpg', w: 1.04, h: 1.6, position: [2.85, 2.3, -4.03], rotationY: 0 }, // on the door
 }
 
 // Desktop "apps" on the monitor, in screen pixels (1024×576). id = which window opens in the zoomed-in desktop (#desktop in index.html).
@@ -228,15 +227,15 @@ export function dressRoom({ scene, room, pc, spike, mp3, neon, mug }) {
     for (const m of [screenMesh, socialsMesh, tvMesh]) if (!m.userData.hover) m.material.emissive.setHex(0xffffff)
   })
 
-  // ---------- window on the left wall: Sydney photos (drawn skyline until they load), day + night ----------
+  // ---------- window on the left wall: Sydney photos, day + night ----------
   // The wall has no opening, so it's a frame + faint glass over the photos. Photos: see the credits dialog.
   const WIN = { z: -2.2, y: 3.3, w: 2.6, h: 2.2 } // centre on the left wall (x -3.92); clear of the monitors and the moved lamp
   const win = new THREE.Group()
   win.position.set(-3.92, WIN.y, WIN.z)
   win.rotation.y = Math.PI / 2 // local +z points into the room
   const skyGeo = new THREE.PlaneGeometry(WIN.w, WIN.h)
-  const daySky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ map: canvasTexture(512, 512, (c) => drawSky(c, false)) }))
-  const nightSky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ map: canvasTexture(512, 512, (c) => drawSky(c, true)), transparent: true, opacity: 0 }))
+  const daySky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial())
+  const nightSky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0 }))
   daySky.position.z = 0.01
   nightSky.position.z = 0.012
   loadImageInto(daySky, '/decor/sydney-day.jpg', WIN.w / WIN.h)
@@ -347,8 +346,7 @@ export function dressRoom({ scene, room, pc, spike, mp3, neon, mug }) {
 
   // ---------- posters ----------
   for (const [key, p] of Object.entries(POSTERS)) {
-    const tex = canvasTexture(p.w > p.h ? 768 : 512, p.w > p.h ? 540 : 690, p.draw)
-    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.8 })
+    const mat = new THREE.MeshStandardMaterial({ roughness: 0.8 })
     if (p.cover) {
       const art = planeOver(byMaterial(p.cover), mat)
       loadImageInto(art, p.image, rectOf(art).w / rectOf(art).h)
@@ -950,147 +948,6 @@ function drawSocials(c) {
   c.fillRect(0, 540, 1024, 36)
 }
 
-function drawSky(c, night) {
-  const g = c.createLinearGradient(0, 0, 0, 512)
-  if (night) {
-    g.addColorStop(0, '#070a24')
-    g.addColorStop(1, '#2d2557')
-  } else {
-    g.addColorStop(0, '#7fb8ff')
-    g.addColorStop(1, '#ffe0c4')
-  }
-  c.fillStyle = g
-  c.fillRect(0, 0, 512, 512)
-  const rand = seeded(42)
-  if (night) {
-    c.fillStyle = '#fff'
-    for (let i = 0; i < 120; i++) c.fillRect(rand() * 512, rand() * 330, rand() * 2 + 0.5, rand() * 2 + 0.5)
-    c.fillStyle = '#f5f0d8'
-    c.beginPath()
-    c.arc(390, 110, 26, 0, Math.PI * 2)
-    c.fill()
-  } else {
-    c.fillStyle = 'rgba(255,250,230,0.9)'
-    c.beginPath()
-    c.arc(390, 120, 34, 0, Math.PI * 2)
-    c.fill()
-  }
-
-  // skyline: towers, Harbour Bridge arch, Opera House sails
-  const ink = night ? '#0b0a18' : '#5d6a8f'
-  c.fillStyle = ink
-  const base = 400
-  for (let x = 0; x < 512; ) {
-    const w = 18 + rand() * 26
-    const h = 20 + rand() * 60
-    c.fillRect(x, base - h, w, h + 120)
-    if (night) {
-      c.fillStyle = '#ffd77a'
-      for (let wy = base - h + 8; wy < base - 6; wy += 12) for (let wx = x + 4; wx < x + w - 4; wx += 8) if (rand() > 0.6) c.fillRect(wx, wy, 3, 4)
-      c.fillStyle = ink
-    }
-    x += w + 2
-  }
-  c.strokeStyle = ink
-  c.lineWidth = 5
-  c.beginPath()
-  c.moveTo(0, 430)
-  c.quadraticCurveTo(150, 330, 300, 430)
-  c.stroke()
-  c.fillRect(0, 428, 320, 6)
-  c.fillStyle = night ? '#e8e2ff' : '#f7f4ee'
-  ;[[330, 70], [372, 58], [410, 44]].forEach(([x, h]) => {
-    c.beginPath()
-    c.moveTo(x, 470)
-    c.quadraticCurveTo(x + 6, 470 - h, x + 44, 470 - h)
-    c.quadraticCurveTo(x + 30, 450, x + 48, 470)
-    c.fill()
-  })
-  c.fillStyle = night ? '#141238' : '#4f86c6'
-  c.fillRect(0, 470, 512, 42) // harbour
-}
-
-function drawTrigunPoster(c, w, h) {
-  const paper = c.createRadialGradient(w / 2, h / 2, 80, w / 2, h / 2, h * 0.75)
-  paper.addColorStop(0, '#f1dfb4')
-  paper.addColorStop(1, '#b98f55')
-  c.fillStyle = paper
-  c.fillRect(0, 0, w, h)
-  c.textAlign = 'center'
-  c.fillStyle = '#3a2414'
-  c.font = '900 92px Georgia, serif'
-  c.fillText('WANTED', w / 2, 100)
-  c.font = 'italic 700 24px Georgia, serif'
-  c.fillText('— DEAD OR ALIVE —', w / 2, 136)
-
-  // scene: sky, two suns, dunes
-  const sx = 46, sy = 160, sw = w - 92, sh = 260
-  const sky = c.createLinearGradient(0, sy, 0, sy + sh)
-  sky.addColorStop(0, '#f7b267')
-  sky.addColorStop(1, '#f4845f')
-  c.fillStyle = sky
-  c.fillRect(sx, sy, sw, sh)
-  c.fillStyle = '#fff3c4'
-  c.beginPath()
-  c.arc(sx + sw * 0.38, sy + 90, 34, 0, Math.PI * 2)
-  c.arc(sx + sw * 0.62, sy + 70, 24, 0, Math.PI * 2)
-  c.fill()
-  ;[['#c8553d', 190], ['#8c2f39', 225]].forEach(([col, y0]) => {
-    c.fillStyle = col
-    c.beginPath()
-    c.moveTo(sx, sy + sh)
-    for (let x = 0; x <= sw; x += 8) c.lineTo(sx + x, sy + y0 + Math.sin(x / 60 + y0) * 14)
-    c.lineTo(sx + sw, sy + sh)
-    c.fill()
-  })
-  c.strokeStyle = '#3a2414'
-  c.lineWidth = 6
-  c.strokeRect(sx, sy, sw, sh)
-
-  c.fillStyle = '#b3261e'
-  c.font = '900 64px Georgia, serif'
-  c.fillText('TRIGUN', w / 2, 492)
-  c.fillStyle = '#3a2414'
-  c.font = '700 22px Georgia, serif'
-  c.fillText('THE HUMANOID TYPHOON', w / 2, 524)
-  c.font = '900 40px Georgia, serif'
-  c.fillText('$$60,000,000,000', w / 2, 590)
-  c.font = 'italic 700 30px Georgia, serif'
-  c.fillStyle = '#b3261e'
-  c.fillText('LOVE & PEACE!', w / 2, 650)
-}
-
-function drawPaperPoster(c, w, h) {
-  c.fillStyle = PALETTE.paper
-  c.fillRect(0, 0, w, h)
-  c.fillStyle = PALETTE.pink
-  c.fillRect(0, 0, w, 64)
-  c.fillStyle = '#fff'
-  c.font = '700 22px system-ui, sans-serif'
-  c.fillText('BIDA 2025 · Springer Nature', 28, 40)
-  c.fillStyle = PALETTE.ink
-  c.font = '800 34px Georgia, serif'
-  ;['Enhancing Stress', 'and Anxiety Detection', 'with Multimodal', 'Sensor Data'].forEach((l, i) => c.fillText(l, 28, 128 + i * 42))
-  c.font = 'italic 20px Georgia, serif'
-  c.fillStyle = PALETTE.slate
-  c.fillText('R. Deshmukh — first author', 28, 316)
-  // three wearable signals
-  ;[['ACC', PALETTE.orange, 9], ['TEMP', PALETTE.red, 3], ['EDA', PALETTE.pink, 5]].forEach(([name, col, f], k) => {
-    const y0 = 380 + k * 100
-    c.fillStyle = PALETTE.slate
-    c.font = '600 16px system-ui, sans-serif'
-    c.fillText(name, 28, y0 - 28)
-    c.strokeStyle = col
-    c.lineWidth = 3
-    c.beginPath()
-    for (let x = 0; x <= w - 56; x += 4) {
-      const v = Math.sin(x / (60 / f)) * 14 + Math.sin(x / 13 + k) * (k === 0 ? 10 : 3) + (k === 2 && x > 250 && x < 330 ? -26 * Math.sin(((x - 250) / 80) * Math.PI) : 0)
-      x ? c.lineTo(28 + x, y0 + v) : c.moveTo(28 + x, y0 + v)
-    }
-    c.stroke()
-  })
-}
-
 function drawGsocSticker(c, w, h) {
   c.fillStyle = PALETTE.orange
   c.strokeStyle = PALETTE.ink
@@ -1182,13 +1039,3 @@ function roundRect(c, x, y, w, h, r) {
   c.fill()
 }
 
-function face(c, color, pts) {
-  c.fillStyle = color
-  c.beginPath()
-  pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y)))
-  c.fill()
-}
-
-function shade(hex, f) {
-  return '#' + new THREE.Color(hex).multiplyScalar(f).getHexString()
-}

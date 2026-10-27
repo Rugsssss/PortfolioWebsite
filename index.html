@@ -7,7 +7,7 @@
     <meta name="description" content="Portfolio of Rugved Deshmukh: software engineer working across graphics, systems, ML research and UI." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&family=Comic+Neue:wght@700&display=swap" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
@@ -93,7 +93,6 @@ MPE (Software) @ University of Sydney
             <li>Chunked terrain generation</li>
             <li>Camera and character controller</li>
           </ul>
-          <!-- TODO: add a video/GIF here, e.g. <video src="/media/voxel.mp4" autoplay muted loop playsinline></video> -->
           <p>Also worked with Unity, Unreal Engine 4 and OpenGL.</p>
           <a href="https://github.com/Rugsssss/Voxel-Engine" target="_blank" rel="noopener">GitHub ↗</a>
         </div>
@@ -174,7 +173,8 @@ MPE (Software) @ University of Sydney
     </div>
 
     <header>
-      <h1>Rugved Deshmukh</h1>
+      <!-- Persona-style ransom-note name: each letter its own tilted block; hover lifts it (style.css .logo) -->
+      <h1 class="logo" aria-label="Rugved Deshmukh"><span aria-hidden="true" class="letters"><span class="word"><span style="--i: 0">R</span><span style="--i: 1">U</span><span style="--i: 2">G</span><span style="--i: 3">V</span><span style="--i: 4">E</span><span style="--i: 5">D</span></span><span class="word"><span style="--i: 6">D</span><span style="--i: 7">E</span><span style="--i: 8">S</span><span style="--i: 9">H</span><span style="--i: 10">M</span><span style="--i: 11">U</span><span style="--i: 12">K</span><span style="--i: 13">H</span></span></span></h1>
       <button id="plain-toggle">Plain view</button>
       <button id="theme-toggle" aria-label="Dark mode" aria-pressed="false">
         <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" /></svg>
@@ -218,7 +218,7 @@ MPE (Software) @ University of Sydney
         <li><b>Masters of Professional Engineering (Software)</b>, University of Sydney — 2026–2028</li>
         <li><b>B.Tech Computer Science</b>, M.S. Ramaiah University of Applied Sciences — CGPA 8.85</li>
       </ul>
-      <p><a href="/resume.pdf" download>Download resume (PDF)</a></p>
+      <p><a href="/resume.pdf" download="Rugved-Deshmukh-Resume.pdf">Download resume (PDF)</a></p>
     </dialog>
 
     <dialog id="projects">
@@ -251,7 +251,6 @@ MPE (Software) @ University of Sydney
       <article>
         <h3>Voxel Engine <small>ModernGL · PyGLM · Numba · OpenSimplex</small></h3>
         <p>Custom shaders, clouds, fog, transparent water, chunked terrain generation, camera and character controller — fast even on integrated GPUs.</p>
-        <!-- TODO: add a video/GIF here, e.g. <video src="/media/voxel.mp4" autoplay muted loop playsinline></video> -->
         <a href="https://github.com/Rugsssss/Voxel-Engine" target="_blank" rel="noopener">GitHub ↗</a>
       </article>
       <p>Also: Unity, Unreal Engine 4, OpenGL.</p>
@@ -333,7 +332,7 @@ MPE (Software) @ University of Sydney
             <a class="pill solid" href="https://github.com/Rugsssss" target="_blank" rel="noopener">GitHub ↗</a>
             <a class="pill" href="https://www.linkedin.com/in/rugved-deshmukh-b190041b7/" target="_blank" rel="noopener">LinkedIn ↗</a>
             <a class="pill" href="mailto:rugu9000@gmail.com">Email</a>
-            <!-- TODO: resume button once public/resume.pdf exists: <a class="pill" href="/resume.pdf" download>Resume</a> -->
+            <a class="pill" href="/resume.pdf" download="Rugved-Deshmukh-Resume.pdf">Resume ↓</a>
           </div>
         </section>
 
@@ -343,6 +342,7 @@ MPE (Software) @ University of Sydney
             <span class="chip">Python</span><span class="chip">C++</span><span class="chip">JavaScript</span><span class="chip">Java</span><span class="chip">HTML &amp; CSS</span>
             <span class="chip">Three.js / WebGL</span><span class="chip">OpenGL</span><span class="chip">PyQt5 &amp; Qt</span><span class="chip">OpenCV</span><span class="chip">PyTorch</span>
             <span class="chip">Machine learning</span><span class="chip">Linux &amp; Bash</span><span class="chip">SQLite</span><span class="chip">Unreal Engine 4</span><span class="chip">Unity</span>
+            <span class="chip">SQL</span><span class="chip">MATLAB</span><span class="chip">Django</span><span class="chip">Docker</span><span class="chip">Git</span><span class="chip">WordPress</span>
             <span class="chip">Figma</span><span class="chip">Photoshop</span><span class="chip">After Effects</span><span class="chip">Premiere Pro</span>
           </div>
         </section>

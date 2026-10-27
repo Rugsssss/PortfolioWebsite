@@ -156,7 +156,7 @@ function placeProp(wrapper, model, cfg) {
 }
 
 // Average height of the room surface under an object's footprint (centre + 4 corners), so props
-// sit on the lumpy bed sheet instead of floating at a fixed height.
+// sit on cushions and tabletops instead of floating at a fixed height.
 const down = new THREE.Raycaster()
 function surfaceUnder(obj) {
   obj.updateMatrixWorld(true)

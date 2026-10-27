@@ -9,12 +9,12 @@ npm run build    # static site in dist/
 ```
 
 ## Layout
-- `index.html` — page shell and all section text (each `<dialog>` is a section)
+- `index.html` — page shell and all text: section panels (`<dialog>`s), monitor pages (`.desktop`), comic panels (`.bubble`) and the plain view (`#plain`)
 - `src/main.js` — scene setup, props (`PROPS`), clickable hotspots (`HOTSPOTS`), camera, panels
-- `src/decor.js` — room dressing: lighting, posters, monitor/MP3 screens, music, background shader
+- `src/decor.js` — room dressing: palette, lighting and glows, posters, window, manga shelf, monitor/TV/MP3 screens, music, background shader
+- `src/plain.js` — plain view animations (tile reveal, tilt, count-up)
 - `src/style.css` — palette tokens, frosted-glass panels
 - `public/` — what the site serves: compressed models, images, music
-- `api/now-playing.js` — optional Vercel function for live Spotify "now playing" (not wired up)
 - `source-assets/` — original downloads the files in `public/` were made from; not served
 
 Re-compress a model after editing its source:
